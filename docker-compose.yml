@@ -1,0 +1,22 @@
+services:
+  postgis:
+    image: postgis/postgis:${POSTGIS_IMAGE_TAG:-17-3.5-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tandanji}
+      POSTGRES_USER: ${POSTGRES_USER:-tandanji}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tandanji}
+      TZ: Asia/Seoul
+    ports:
+      - "${POSTGIS_BIND_ADDR:-0.0.0.0}:${POSTGIS_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgis_data:
