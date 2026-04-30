@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql *)",
+      "PowerShell($env:PGPASSWORD = \"0218\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -d postgres -c \"\\\\d tdj.brands\" 2>&1)",
+      "PowerShell($env:PGPASSWORD = \"0218\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -d postgres -c \"\\\\d tdj.menus\" 2>&1)",
+      "PowerShell(java *)",
+      "Bash(./gradlew compileJava)",
+      "Bash(./gradlew collectData *)",
+      "Bash(PGPASSWORD=0218 /c/Program Files/PostgreSQL/17/bin/psql.exe *)",
+      "Bash(py --version)",
+      "Bash(./gradlew importCsv *)",
+      "Bash(git add *)"
+    ]
+  }
+}

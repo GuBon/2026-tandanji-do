@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'TDJMap'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'org.jsoup:jsoup:1.18.3'
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.register('crawlFatSecret', JavaExec) {
+    group = 'data'
+    description = 'fatsecret.kr에서 incheon_brands.csv 브랜드 메뉴·영양성분을 크롤링해 DB에 저장합니다.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.example.tdjmap.collector.FatSecretKrCrawler'
+    // 특정 브랜드만 테스트: ./gradlew crawlFatSecret -Pbrand=이삭토스트
+    if (project.hasProperty('brand')) {
+        jvmArgs "-Dbrand=${project.property('brand')}"
+    }
+}

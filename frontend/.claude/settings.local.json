@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(claude mcp *)",
+      "Bash(del c:/Users/admin/Desktop/tdj-client/figma_node.json)",
+      "PowerShell(cd c:\\\\tdj-client; npm run dev -- --host 2>&1)",
+      "PowerShell(Get-Command npm -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); & node --version; & npm --version)",
+      "Bash(git mv *)"
+    ]
+  }
+}
