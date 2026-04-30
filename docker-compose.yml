@@ -20,3 +20,23 @@ services:
 
 volumes:
   postgis_data:
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgis:5432/${POSTGRES_DB}?currentSchema=${APP_DB_SCHEMA}
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD}
+    depends_on:
+      - postgis
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
