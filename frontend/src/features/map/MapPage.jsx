@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MapView from './MapView.jsx'
 import Header from '../../components/Header.jsx'
@@ -15,7 +15,8 @@ import useMapUI from './useMapUI.js'
 import useMapMarkers from './useMapMarkers.js'
 import useMapStore from '../../store/useMapStore.js'
 import { useGeolocation } from './useGeolocation.js'
-import { MOCK_STORES } from '../../data/mockStores.js'
+import { useStoreDistance } from './useStoreDistance.js'
+import useMapStores from './useMapStores.js'
 import WeatherCanvas from './WeatherCanvas.jsx'
 
 const IS_DEV = import.meta.env.DEV
@@ -27,6 +28,15 @@ export default function MapPage() {
   const setWeather = useMapStore((s) => s.setWeather)
   const weather = useMapStore((s) => s.weather)
   const { locate } = useGeolocation()
+  const mapInstance = useMapStore((s) => s.mapInstance)
+  const [mapZoom, setMapZoom] = useState(12)
+
+  useEffect(() => {
+    if (!mapInstance) return
+    const onMoveEnd = () => setMapZoom(mapInstance.getView().getZoom() ?? 12)
+    mapInstance.on('moveend', onMoveEnd)
+    return () => mapInstance.un('moveend', onMoveEnd)
+  }, [mapInstance])
 
   const {
     activeFilter,
@@ -39,11 +49,16 @@ export default function MapPage() {
     closeFilter,
   } = useMapUI()
 
-  const visibleStores = activeFilter
-    ? MOCK_STORES.filter((s) => s.category === activeFilter)
-    : MOCK_STORES
+  const { stores, loading, error } = useMapStores()
+
+  const visibleStores = stores.filter((s) => {
+    if (!activeFilter) return true
+    if (['GREEN', 'YELLOW', 'RED'].includes(activeFilter)) return s.grade === activeFilter
+    return s.tags?.includes(activeFilter.replace('#', '')) ?? false
+  })
 
   const pixelPositions = useMapMarkers(visibleStores)
+  const storeDistances = useStoreDistance(stores)
 
   return (
     <div className="flex flex-col w-full h-dvh overflow-hidden bg-gray-100">
@@ -51,6 +66,17 @@ export default function MapPage() {
 
       <div className="relative flex-1 overflow-hidden">
         <MapView />
+
+        {loading && (
+          <div className="absolute top-[128px] left-1/2 -translate-x-1/2 z-ui bg-white/90 px-3 py-1.5 rounded-full text-xs text-gray-500 shadow-sm">
+            매장 로딩 중…
+          </div>
+        )}
+        {error && (
+          <div className="absolute top-[128px] left-1/2 -translate-x-1/2 z-ui bg-red-50 px-3 py-1.5 rounded-full text-xs text-red-500 shadow-sm">
+            데이터를 불러오지 못했어요
+          </div>
+        )}
 
         {visibleStores.map((store) => {
           const pos = pixelPositions[store.id]
@@ -62,10 +88,11 @@ export default function MapPage() {
               style={{ left: pos.left, top: pos.top }}
             >
               <MapMarker
-                variant={store.variant}
+                grade={store.grade}
                 name={store.name}
                 nutrition={store.nutrition}
                 onClick={() => selectStore(store)}
+                compact={mapZoom < 15}
               />
             </div>
           )
@@ -113,7 +140,10 @@ export default function MapPage() {
           </div>
         )}
 
-        <StoreCard store={selectedStore} onClose={closeStore} />
+        <StoreCard
+          store={selectedStore ? { ...selectedStore, ...storeDistances[selectedStore.id] } : null}
+          onClose={closeStore}
+        />
       </div>
 
       <BottomNavBar />
