@@ -1,23 +1,73 @@
-import { useCallback } from 'react'
-import useDietStore from '../../store/useDietStore'
+import { useState, useCallback, useEffect } from 'react'
+import useDietStore from '../../store/useDietStore.js'
+import { fetchDietLogs, createDietLog, deleteDietLog } from '../../api/recordApi.js'
+
+function toStoreShape(log) {
+  return {
+    id: String(log.logId),
+    logId: log.logId,
+    name: log.foodName || '(메뉴)',
+    calories: log.logKcal || 0,
+    carbs: log.logCarbs || 0,
+    protein: log.logProtein || 0,
+    fat: log.logFat || 0,
+    mealType: log.mealType,
+    time: new Date(log.ateAt),
+  }
+}
 
 export function useDiet() {
-  const { meals, dailyCalories, addMeal, removeMeal } = useDietStore()
+  const { meals, addMeal, removeMeal, resetMeals } = useDietStore()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const today = new Date()
+
+  const loadTodayLogs = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      resetMeals()
+      const logs = await fetchDietLogs(today)
+      logs.forEach((log) => addMeal(toStoreShape(log)))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadTodayLogs()
+  }, [loadTodayLogs])
+
+  const dailyCalories = meals.reduce((s, m) => s + (m.calories || 0), 0)
 
   const addMealEntry = useCallback(
-    (name, calories, carbs = 0, protein = 0, fat = 0) => {
-      addMeal({
-        id: crypto.randomUUID(),
-        name,
-        calories: Number(calories),
-        carbs: Number(carbs),
-        protein: Number(protein),
-        fat: Number(fat),
-        time: new Date(),
+    async ({ name, calories, carbs = 0, protein = 0, fat = 0, mealType = '간식', ateAt }) => {
+      const saved = await createDietLog({
+        foodName: name,
+        mealType,
+        logKcal: Number(calories),
+        logCarbs: Number(carbs),
+        logProtein: Number(protein),
+        logFat: Number(fat),
+        logSugar: 0,
+        ateAt: ateAt ?? new Date().toISOString().slice(0, 19),
       })
+      addMeal(toStoreShape(saved))
+      return saved
     },
     [addMeal],
   )
 
-  return { meals, dailyCalories, addMealEntry, removeMeal }
+  const removeMealEntry = useCallback(
+    async (meal) => {
+      await deleteDietLog(meal.logId)
+      removeMeal(meal.id)
+    },
+    [removeMeal],
+  )
+
+  return { meals, dailyCalories, addMealEntry, removeMealEntry, loading, refresh: loadTodayLogs }
 }
