@@ -1,12 +1,36 @@
+import { useEffect } from 'react'
 import useAuthStore from '../../store/useAuthStore'
 import { useKakaoLogin } from './useKakaoLogin'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL
 
 export default function AuthGuard({ children }) {
   const user = useAuthStore((s) => s.user)
   const isGuest = useAuthStore((s) => s.isGuest)
   const isLoading = useAuthStore((s) => s.isLoading)
   const error = useAuthStore((s) => s.error)
+  const jwtAccessToken = useAuthStore((s) => s.jwtAccessToken)
+  const jwtRefreshToken = useAuthStore((s) => s.jwtRefreshToken)
+  const setAccessToken = useAuthStore((s) => s.setAccessToken)
+  const clearAuth = useAuthStore((s) => s.clearAuth)
   const { login, browseAsGuest } = useKakaoLogin()
+
+  // 새로고침 후 메모리에서 사라진 accessToken을 복원 — 로그인 화면 노출 방지
+  useEffect(() => {
+    if (!jwtRefreshToken || jwtAccessToken) return
+
+    fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: jwtRefreshToken }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('refresh failed')
+        return res.json()
+      })
+      .then(({ data }) => setAccessToken(data.accessToken))
+      .catch(() => clearAuth())
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (user || isGuest) return children
 

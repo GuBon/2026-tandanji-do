@@ -2,9 +2,10 @@ import { useCallback } from 'react'
 import useAuthStore from '../../store/useAuthStore'
 
 const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_APP_KEY
+const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI
 
 export function useKakaoLogin() {
-  const { setAuth, setGuest, clearAuth, setLoading, setError } = useAuthStore()
+  const { setGuest, clearAuth, setError } = useAuthStore()
 
   const login = useCallback(() => {
     if (!window.Kakao) {
@@ -12,41 +13,25 @@ export function useKakaoLogin() {
       return
     }
 
-    try {
-      if (!window.Kakao.isInitialized()) {
-        window.Kakao.init(KAKAO_APP_KEY)
-      }
-
-      setLoading(true)
-
-      window.Kakao.Auth.login({
-        success: (authObj) => {
-          window.Kakao.API.request({
-            url: '/v2/user/me',
-            success: (res) => {
-              setAuth(
-                { id: res.id, nickname: res.kakao_account?.profile?.nickname },
-                authObj.access_token,
-              )
-            },
-            fail: (err) => setError(err?.message ?? '사용자 정보 요청 실패'),
-          })
-        },
-        fail: (err) => setError(err?.error_description ?? '카카오 로그인 실패'),
-      })
-    } catch (err) {
-      setError(err?.message ?? '로그인 중 오류가 발생했습니다.')
+    if (!window.Kakao.isInitialized()) {
+      window.Kakao.init(KAKAO_APP_KEY)
     }
-  }, [setAuth, setLoading, setError])
 
-  const logout = useCallback(() => {
+    window.Kakao.Auth.authorize({ redirectUri: REDIRECT_URI })
+  }, [setError])
+
+  const logout = useCallback(async () => {
+    const { jwtAccessToken } = useAuthStore.getState()
     try {
-      if (window.Kakao?.Auth?.getAccessToken()) {
-        window.Kakao.Auth.logout(() => clearAuth())
-      } else {
-        clearAuth()
+      if (jwtAccessToken) {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${jwtAccessToken}` },
+        })
       }
-    } catch (err) {
+    } catch {
+      // 로그아웃 실패해도 로컬 상태는 항상 초기화
+    } finally {
       clearAuth()
     }
   }, [clearAuth])
