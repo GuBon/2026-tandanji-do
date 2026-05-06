@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reports", schema = "tdj")
+@Table(name = "reports", schema = "tandanji")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +26,9 @@ public class Report {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
     private Brand brand;
+
+    @Column(name = "store_name")
+    private String storeName;
 
     @Column(name = "menu_name", nullable = false)
     private String menuName;
