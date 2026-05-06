@@ -14,7 +14,7 @@ import java.util.*;
 
 /**
  * www.fatsecret.kr 검색 결과를 크롤링해 incheon_brands.csv 브랜드의
- * 메뉴·영양성분을 tdj.brands / tdj.menus 테이블에 저장합니다.
+ * 메뉴·영양성분을 tandanji.brands / tandanji.menus 테이블에 저장합니다.
  *
  * 실행: ./gradlew crawlFatSecret
  */
@@ -292,13 +292,13 @@ public class FatSecretKrCrawler {
     private long upsertBrand(Connection conn, String brandName) throws SQLException {
         String trimmedName = brandName.trim();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT brand_id FROM tdj.brands WHERE brand_name = ?")) {
+                "SELECT brand_id FROM tandanji.brands WHERE brand_name = ?")) {
             ps.setString(1, trimmedName);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getLong(1);
         }
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO tdj.brands (brand_name) VALUES (?) RETURNING brand_id")) {
+                "INSERT INTO tandanji.brands (brand_name) VALUES (?) RETURNING brand_id")) {
             ps.setString(1, trimmedName);
             ResultSet rs = ps.executeQuery();
             rs.next();
@@ -313,7 +313,7 @@ public class FatSecretKrCrawler {
 
         String trimmedMenu = menuName.trim();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM tdj.menus WHERE brand_id = ? AND menu_name = ?")) {
+                "SELECT 1 FROM tandanji.menus WHERE brand_id = ? AND menu_name = ?")) {
             ps.setLong(1, brandId);
             ps.setString(2, trimmedMenu);
             if (ps.executeQuery().next()) {
@@ -322,7 +322,7 @@ public class FatSecretKrCrawler {
             }
         }
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO tdj.menus (brand_id, menu_name, kcal, carbs, protein, fat, is_standard) " +
+                "INSERT INTO tandanji.menus (brand_id, menu_name, kcal, carbs, protein, fat, is_standard) " +
                 "VALUES (?, ?, ?, ?, ?, ?, false)")) {
             ps.setLong(1, brandId);
             ps.setString(2, trimmedMenu);

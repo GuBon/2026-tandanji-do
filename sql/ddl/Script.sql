@@ -157,7 +157,7 @@ CREATE TABLE reports (
 );
 
 
-CREATE OR REPLACE FUNCTION tdj.analyze_nutrition(
+CREATE OR REPLACE FUNCTION tandanji.analyze_nutrition(
     carbs   BIGINT,
     protein BIGINT,
     fat     BIGINT
@@ -190,7 +190,7 @@ BEGIN
 
     IF c_ratio BETWEEN 35 AND 55
    AND p_ratio >= 30             
-   AND f_ratio <  25              -
+   AND f_ratio <  25
     THEN grade := 'GREEN';
 
     ELSIF c_ratio >= 65
@@ -205,8 +205,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
-ALTER TABLE tdj.menus
+ALTER TABLE tandanji.menus
 ADD COLUMN nutrition_info JSONB
     GENERATED ALWAYS AS (
-        tdj.analyze_nutrition(carbs, protein, fat)
+        tandanji.analyze_nutrition(carbs, protein, fat)
     ) STORED;
