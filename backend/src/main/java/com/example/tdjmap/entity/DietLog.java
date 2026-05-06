@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "diet_logs", schema = "tdj")
+@Table(name = "diet_logs", schema = "tandanji")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,6 +45,9 @@ public class DietLog {
 
     @Column(name = "log_sugar")
     private Long logSugar;
+
+    @Column(name = "food_name", length = 255)
+    private String foodName;
 
     @Column(name = "img_url")
     private String imgUrl;
