@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import Button from '../../components/Button.jsx'
+import { useReport } from './useReport.js'
 
 const CarbsIcon = () => (
   <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -35,9 +35,13 @@ const NUTRITION_ROWS = [
 ]
 
 export default function ReportModal({ onClose }) {
-  const [form, setForm] = useState({ storeName: '', menuName: '', carbs: '', protein: '', fat: '' })
+  const { form, setField, loading, error, submit } = useReport({
+    onSuccess: onClose,
+  })
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  const handleSubmit = async () => {
+    await submit()
+  }
 
   return (
     <>
@@ -46,7 +50,6 @@ export default function ReportModal({ onClose }) {
       <div className="fixed bottom-0 left-0 right-0 z-modal bg-white rounded-t-3xl max-h-[92dvh] overflow-y-auto">
         <div className="px-6 pt-7 pb-10 flex flex-col gap-6">
 
-          {/* 타이틀 */}
           <div className="flex flex-col gap-1.5">
             <h2 className="text-[28px] font-bold text-gray-800 leading-tight">정보 제보하기</h2>
             <p className="text-sm text-gray-500 leading-snug">
@@ -54,7 +57,6 @@ export default function ReportModal({ onClose }) {
             </p>
           </div>
 
-          {/* 매장명 */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-gray-800">
               매장명 <span className="font-normal text-gray-400">(STORE NAME)</span>
@@ -63,12 +65,11 @@ export default function ReportModal({ onClose }) {
               type="text"
               placeholder="예: 샐러디 강남점"
               value={form.storeName}
-              onChange={set('storeName')}
+              onChange={setField('storeName')}
               className="w-full h-[58px] px-5 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
             />
           </div>
 
-          {/* 메뉴명 */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-gray-800">
               메뉴명 <span className="font-normal text-gray-400">(MENU NAME)</span>
@@ -77,12 +78,11 @@ export default function ReportModal({ onClose }) {
               type="text"
               placeholder="예: 칠리 베이컨 윔볼"
               value={form.menuName}
-              onChange={set('menuName')}
+              onChange={setField('menuName')}
               className="w-full h-[58px] px-5 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
             />
           </div>
 
-          {/* 영양성분 정보 */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-gray-800">
               영양성분 정보 <span className="font-normal text-gray-400">(NUTRITIONAL INFO)</span>
@@ -99,7 +99,7 @@ export default function ReportModal({ onClose }) {
                     min="0"
                     placeholder="0"
                     value={form[key]}
-                    onChange={set(key)}
+                    onChange={setField(key)}
                     className="w-14 text-right text-[26px] font-light text-gray-700 bg-transparent outline-none"
                   />
                   <span className="text-base font-medium text-gray-500">g</span>
@@ -108,7 +108,10 @@ export default function ReportModal({ onClose }) {
             </div>
           </div>
 
-          {/* 안내 박스 */}
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
+          )}
+
           <div className="rounded-2xl bg-emerald-50 border-l-4 border-emerald-500 px-4 py-4">
             <p className="text-sm text-gray-500 leading-relaxed">
               이미지나 영수증을 함께 첨부하면 검수 과정이 더욱 빨라집니다.
@@ -116,11 +119,13 @@ export default function ReportModal({ onClose }) {
             </p>
           </div>
 
-          {/* 버튼 */}
           <div className="flex gap-3">
-            <Button variant="sheet-cancel" onClick={onClose}>취소</Button>
-            <Button variant="sheet-confirm" onClick={onClose}>제보하기</Button>
+            <Button variant="sheet-cancel" onClick={onClose} disabled={loading}>취소</Button>
+            <Button variant="sheet-confirm" onClick={handleSubmit} disabled={loading}>
+              {loading ? '제보 중...' : '제보하기'}
+            </Button>
           </div>
+
         </div>
       </div>
     </>

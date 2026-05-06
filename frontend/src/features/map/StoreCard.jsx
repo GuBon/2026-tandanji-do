@@ -62,10 +62,24 @@ export default function StoreCard({ store, onClose }) {
 
           {/* 하단: 영양소 셀 */}
           <div className="flex gap-2">
-            <NutritionCell label="PROTEIN" value={store.nutrition?.protein ?? '--'} className="flex-1 py-2" />
-            <NutritionCell label="CARBS"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-2" />
-            <NutritionCell label="FAT"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-2" />
+            <NutritionCell label="PROTEIN" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
+            <NutritionCell label="CARBS"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
+            <NutritionCell label="FAT"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
           </div>
+
+          {/* 태그 행 */}
+          {store.tags?.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {store.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 닫기 */}
