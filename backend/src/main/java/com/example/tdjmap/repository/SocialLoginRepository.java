@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface SocialLoginRepository extends JpaRepository<SocialLogin, Long> {
     Optional<SocialLogin> findByProviderAndProviderId(String provider, String providerId);
+    Optional<SocialLogin> findByUser_IdAndProvider(Long userId, String provider);
 }

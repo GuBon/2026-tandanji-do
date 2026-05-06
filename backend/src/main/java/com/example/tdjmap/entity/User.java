@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", schema = "tdj")
+@Table(name = "users", schema = "tandanji")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,6 +24,10 @@ public class User {
     private Long height;
     private Long weight;
     private String gender;
+
+    @Builder.Default
+    @Column(nullable = false, length = 10)
+    private String role = "USER";
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
