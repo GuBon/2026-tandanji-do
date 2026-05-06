@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "stores", schema = "tdj")
+@Table(name = "stores", schema = "tandanji")
 @Getter
 @Setter
 @NoArgsConstructor
