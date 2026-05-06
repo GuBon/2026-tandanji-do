@@ -1,8 +1,8 @@
-import useExerciseStore from '../../store/useExerciseStore.js'
+import { useState } from 'react'
 import CalorieHeroCard from './CalorieHeroCard.jsx'
 import ExerciseActivityCard from './ExerciseActivityCard.jsx'
+import HistoryModal from './HistoryModal.jsx'
 
-// 신장/체중: 현재 데이터 모델 없음 — 향후 프로필 스토어 연동 예정
 const BODY_STATS = { height: 182, weight: 76.4 }
 
 function StatCard({ label, value, unit }) {
@@ -19,17 +19,11 @@ function StatCard({ label, value, unit }) {
   )
 }
 
-export default function ExerciseTab() {
-  const { exercises, totalVolumeTon, removeExercise } = useExerciseStore()
-
-  const totalCalories = exercises.reduce((s, e) => s + e.calories, 0)
-  const totalMinutes  = exercises
-    .filter((e) => e.unit === 'min')
-    .reduce((s, e) => s + e.duration, 0)
+export default function ExerciseTab({ exercises, totalCalories, totalMinutes, loading, onRemove }) {
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
-      {/* 칼로리 히어로 카드 */}
       <CalorieHeroCard label="오늘의 소비 칼로리" value={totalCalories} />
 
       {/* 신장 / 체중 */}
@@ -52,15 +46,27 @@ export default function ExerciseTab() {
 
       {/* 통계 그리드 */}
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="운동 시간"  value={totalMinutes}  unit="MIN" />
-        <StatCard label="운동량"     value={totalVolumeTon} unit="TON" />
+        <StatCard label="운동 시간" value={totalMinutes} unit="MIN" />
+        <StatCard label="운동 횟수" value={exercises.length} unit="회" />
       </div>
 
       {/* 활동 목록 */}
       <div className="flex flex-col gap-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-outline">활동 기록</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-outline">오늘의 운동</h3>
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="text-xs font-bold bg-primary text-white px-3 py-1 rounded-full"
+          >
+            내 기록
+          </button>
+        </div>
 
-        {exercises.length === 0 ? (
+        {loading ? (
+          <div className="h-24 flex items-center justify-center text-sm text-outline-variant">
+            불러오는 중...
+          </div>
+        ) : exercises.length === 0 ? (
           <div className="h-24 flex items-center justify-center text-sm text-outline-variant">
             아직 기록된 운동이 없어요
           </div>
@@ -69,11 +75,15 @@ export default function ExerciseTab() {
             <ExerciseActivityCard
               key={ex.id}
               exercise={ex}
-              onRemove={() => removeExercise(ex.id)}
+              onRemove={() => onRemove(ex)}
             />
           ))
         )}
       </div>
+
+      {historyOpen && (
+        <HistoryModal type="exercise" onClose={() => setHistoryOpen(false)} />
+      )}
     </div>
   )
 }
