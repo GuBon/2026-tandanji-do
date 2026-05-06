@@ -3,24 +3,72 @@ import { useDiet } from './useDiet.js'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const MEAL_TYPES = ['아침', '점심', '저녁', '간식']
+
 export default function DietRecordPage() {
   const navigate = useNavigate()
   const { addMealEntry } = useDiet()
-  const [form, setForm] = useState({ name: '', calories: '', carbs: '', protein: '', fat: '' })
+  const [form, setForm] = useState({
+    name: '',
+    calories: '',
+    carbs: '',
+    protein: '',
+    fat: '',
+    mealType: '간식',
+  })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e?.preventDefault()
     if (!form.name || !form.calories) return
-    addMealEntry(form.name, form.calories, form.carbs, form.protein, form.fat)
-    navigate('/record')
+    setSaving(true)
+    setErr(null)
+    try {
+      await addMealEntry({
+        name: form.name,
+        calories: form.calories,
+        carbs: form.carbs,
+        protein: form.protein,
+        fat: form.fat,
+        mealType: form.mealType,
+        ateAt: new Date().toISOString().slice(0, 19),
+      })
+      navigate('/record')
+    } catch {
+      setErr('저장에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <PageLayout header={{ title: '식단 기록', left: <button onClick={() => navigate(-1)} className="text-gray-600 text-xl">←</button> }}>
       <div className="px-6 py-4 flex flex-col gap-6">
-        {/* Hero — Visual Prompt */}
+        {/* Hero */}
         <div className="w-full h-32 bg-emerald-50 rounded-2xl flex items-center justify-center shrink-0">
           <span className="text-4xl">🍽️</span>
+        </div>
+
+        {/* 식사 유형 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500">식사 유형</label>
+          <div className="flex gap-2">
+            {MEAL_TYPES.map((t) => (
+              <button
+                key={t}
+                onClick={() => setForm((f) => ({ ...f, mealType: t }))}
+                className={[
+                  'flex-1 py-2 text-sm rounded-xl border transition-colors',
+                  form.mealType === t
+                    ? 'bg-primary text-white border-primary font-bold'
+                    : 'border-gray-200 text-gray-600',
+                ].join(' ')}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 입력 폼 */}
@@ -45,19 +93,15 @@ export default function DietRecordPage() {
           ))}
         </form>
 
-        {/* AI 분석 CTA */}
-        <div className="h-[124px] bg-emerald-50 rounded-2xl flex flex-col items-center justify-center gap-2">
-          <span className="text-2xl">🤖</span>
-          <p className="text-sm font-medium text-emerald-700">AI가 영양 성분을 자동 분석해드려요</p>
-          <button className="text-xs text-emerald-600 underline">AI 분석 요청</button>
-        </div>
+        {err && <p className="text-sm text-red-500 text-center">{err}</p>}
 
         {/* 저장 버튼 */}
         <button
           onClick={handleSubmit}
-          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-2xl transition-colors"
+          disabled={!form.name || !form.calories || saving}
+          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-2xl transition-colors disabled:opacity-40"
         >
-          기록 저장
+          {saving ? '저장 중...' : '기록 저장'}
         </button>
       </div>
     </PageLayout>
