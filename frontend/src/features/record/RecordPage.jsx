@@ -6,6 +6,7 @@ import FAB from '../../components/FAB.jsx'
 import DietTab from './DietTab.jsx'
 import ExerciseTab from './ExerciseTab.jsx'
 import ExerciseAddModal from './ExerciseAddModal.jsx'
+import { useExercise } from './useExercise.js'
 
 const TABS = ['식단', '운동']
 
@@ -37,6 +38,17 @@ export default function RecordPage() {
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false)
   const navigate = useNavigate()
 
+  // 운동 데이터는 여기서 한 번만 로드 — ExerciseTab과 ExerciseAddModal에 props로 공유
+  const {
+    exercises,
+    exerciseTypes,
+    totalCalories,
+    totalMinutes,
+    loading: exerciseLoading,
+    addExerciseEntry,
+    removeExerciseEntry,
+  } = useExercise()
+
   const handleFAB = () => {
     if (activeTab === 0) navigate('/diet')
     else setExerciseModalOpen(true)
@@ -51,15 +63,28 @@ export default function RecordPage() {
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
           </>
         }
-        className="relative"
       >
-        {activeTab === 0 ? <DietTab /> : <ExerciseTab />}
-
-        <FAB onClick={handleFAB} className="absolute right-6 bottom-6 z-ui" />
+        {activeTab === 0 ? (
+          <DietTab />
+        ) : (
+          <ExerciseTab
+            exercises={exercises}
+            totalCalories={totalCalories}
+            totalMinutes={totalMinutes}
+            loading={exerciseLoading}
+            onRemove={removeExerciseEntry}
+          />
+        )}
       </PageLayout>
 
+      <FAB onClick={handleFAB} className="fixed right-6 bottom-20 z-ui" />
+
       {exerciseModalOpen && (
-        <ExerciseAddModal onClose={() => setExerciseModalOpen(false)} />
+        <ExerciseAddModal
+          exerciseTypes={exerciseTypes}
+          onAdd={addExerciseEntry}
+          onClose={() => setExerciseModalOpen(false)}
+        />
       )}
     </>
   )
