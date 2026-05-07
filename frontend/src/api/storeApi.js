@@ -16,7 +16,7 @@ function normalizeMarker(raw) {
     lat:       raw.latitude,
     lon:       raw.longitude,
     category:  raw.category,
-    grade:     nutritionGrade ?? 'GREEN',
+    grade:     nutritionGrade ?? null,
     tags:      deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
     nutrition: {
       carbs:   carbs   != null ? `${carbs}g`   : '--',

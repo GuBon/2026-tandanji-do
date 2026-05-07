@@ -60,25 +60,31 @@ export default function StoreCard({ store, onClose }) {
             </div>
           </div>
 
-          {/* 하단: 영양소 셀 */}
-          <div className="flex gap-2">
-            <NutritionCell label="PROTEIN" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
-            <NutritionCell label="CARBS"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
-            <NutritionCell label="FAT"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
-          </div>
-
-          {/* 태그 행 */}
-          {store.tags?.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap">
-              {store.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
+          {/* 하단: 영양소 셀 or 정보 없음 */}
+          {store.grade ? (
+            <>
+              <div className="flex gap-2">
+                <NutritionCell label="PROTEIN" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
+                <NutritionCell label="CARBS"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
+                <NutritionCell label="FAT"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
+              </div>
+              {store.tags?.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap">
+                  {store.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              아직 메뉴 정보가 등록되지 않은 매장이에요
+            </p>
           )}
         </div>
 

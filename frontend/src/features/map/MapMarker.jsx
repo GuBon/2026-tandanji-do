@@ -6,14 +6,17 @@ const GRADE_STYLE = {
   RED:    { bg: '#FFC3C3', arrow: '#F87171' },
 }
 
+const GRAY_STYLE = { bg: '#F3F4F6', arrow: '#9CA3AF' }
+
 const ArrowDown = ({ color }) => (
   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="mx-auto">
     <path d="M5 6L0 0h10L5 6z" fill={color} />
   </svg>
 )
 
-export default function MapMarker({ grade = 'GREEN', name, nutrition = {}, onClick, compact = false }) {
-  const { bg, arrow } = GRADE_STYLE[grade] ?? GRADE_STYLE.GREEN
+export default function MapMarker({ grade, name, nutrition = {}, onClick, compact = false }) {
+  const { bg, arrow } = GRADE_STYLE[grade] ?? GRAY_STYLE
+  const hasInfo = !!grade
 
   if (compact) {
     return (
@@ -33,11 +36,15 @@ export default function MapMarker({ grade = 'GREEN', name, nutrition = {}, onCli
         style={{ backgroundColor: bg }}
       >
         <span className="text-[7px] font-semibold text-gray-800 truncate leading-tight">{name}</span>
-        <div className="grid grid-cols-3 gap-0.5">
-          <NutritionCell label="탄" value={nutrition.carbs   ?? '--'} />
-          <NutritionCell label="단" value={nutrition.protein ?? '--'} />
-          <NutritionCell label="지" value={nutrition.fat     ?? '--'} />
-        </div>
+        {hasInfo ? (
+          <div className="grid grid-cols-3 gap-0.5">
+            <NutritionCell label="탄" value={nutrition.carbs   ?? '--'} />
+            <NutritionCell label="단" value={nutrition.protein ?? '--'} />
+            <NutritionCell label="지" value={nutrition.fat     ?? '--'} />
+          </div>
+        ) : (
+          <span className="text-[7px] text-gray-400 text-center py-0.5 leading-tight">정보 없음</span>
+        )}
       </div>
       <ArrowDown color={arrow} />
     </button>
