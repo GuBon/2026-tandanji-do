@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import useAuthStore from '../../store/useAuthStore'
 import { useKakaoLogin } from './useKakaoLogin'
+import { fetchMe } from '../../api/userApi.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
@@ -11,7 +12,9 @@ export default function AuthGuard({ children }) {
   const error = useAuthStore((s) => s.error)
   const jwtAccessToken = useAuthStore((s) => s.jwtAccessToken)
   const jwtRefreshToken = useAuthStore((s) => s.jwtRefreshToken)
+  const profileLoaded = useAuthStore((s) => s.profileLoaded)
   const setAccessToken = useAuthStore((s) => s.setAccessToken)
+  const updateUser = useAuthStore((s) => s.updateUser)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const { login, browseAsGuest } = useKakaoLogin()
 
@@ -31,6 +34,15 @@ export default function AuthGuard({ children }) {
       .then(({ data }) => setAccessToken(data.accessToken))
       .catch(() => clearAuth())
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 로그인 상태에서 전체 프로필(height, weight 등) 로드
+  useEffect(() => {
+    if (!jwtAccessToken || !user || isGuest || profileLoaded) return
+
+    fetchMe()
+      .then((profile) => updateUser(profile))
+      .catch(() => {})
+  }, [jwtAccessToken, profileLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (user || isGuest) return children
 
