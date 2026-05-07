@@ -39,6 +39,9 @@ public class Report {
     private Long fat;
     private Long sugar;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(nullable = false, length = 20)
     private String status;
 

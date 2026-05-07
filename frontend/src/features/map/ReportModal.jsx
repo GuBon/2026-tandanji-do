@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import Button from '../../components/Button.jsx'
+import ImageUploader from '../../components/ImageUploader.jsx'
 import { useReport } from './useReport.js'
 
 const CarbsIcon = () => (
@@ -35,12 +37,11 @@ const NUTRITION_ROWS = [
 ]
 
 export default function ReportModal({ onClose }) {
-  const { form, setField, loading, error, submit } = useReport({
-    onSuccess: onClose,
-  })
+  const { form, setField, loading, error, submit } = useReport({ onSuccess: onClose })
+  const [imageUrl, setImageUrl] = useState(null)
 
   const handleSubmit = async () => {
-    await submit()
+    await submit(imageUrl)
   }
 
   return (
@@ -108,16 +109,25 @@ export default function ReportModal({ onClose }) {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-800">
+              이미지 첨부 <span className="font-normal text-gray-400">(선택)</span>
+            </label>
+            <ImageUploader
+              domain="reports"
+              onChange={setImageUrl}
+              aspectRatio="16/9"
+            />
+          </div>
+
           {error && (
             <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
           )}
 
-          <div className="rounded-2xl bg-emerald-50 border-l-4 border-emerald-500 px-4 py-4">
-            <p className="text-sm text-gray-500 leading-relaxed">
-              이미지나 영수증을 함께 첨부하면 검수 과정이 더욱 빨라집니다.
-              지속적인 허위 제보 시 서비스 이용이 제한될 수 있습니다.
-            </p>
-          </div>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            이미지를 함께 첨부하면 검수 과정이 더욱 빨라집니다.
+            지속적인 허위 제보 시 서비스 이용이 제한될 수 있습니다.
+          </p>
 
           <div className="flex gap-3">
             <Button variant="sheet-cancel" onClick={onClose} disabled={loading}>취소</Button>

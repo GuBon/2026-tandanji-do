@@ -37,6 +37,7 @@ public class ReportService {
                 .carbs(req.getCarbs())
                 .protein(req.getProtein())
                 .fat(req.getFat())
+                .imageUrl(req.getImageUrl())
                 .status("PENDING")
                 .createdAt(LocalDateTime.now())
                 .build();

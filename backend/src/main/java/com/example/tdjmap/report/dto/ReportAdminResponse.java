@@ -20,6 +20,7 @@ public class ReportAdminResponse {
     private Long carbs;
     private Long protein;
     private Long fat;
+    private String imageUrl;
     private String status;
     private LocalDateTime createdAt;
 
@@ -33,6 +34,7 @@ public class ReportAdminResponse {
                 .carbs(r.getCarbs())
                 .protein(r.getProtein())
                 .fat(r.getFat())
+                .imageUrl(r.getImageUrl())
                 .status(r.getStatus())
                 .createdAt(r.getCreatedAt())
                 .build();

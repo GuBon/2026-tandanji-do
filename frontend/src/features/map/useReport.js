@@ -12,7 +12,7 @@ export function useReport({ onSuccess }) {
 
   const reset = () => setForm(INITIAL_FORM)
 
-  const submit = async () => {
+  const submit = async (imageUrl = null) => {
     if (!form.storeName.trim() || !form.menuName.trim()) {
       setError('매장명과 메뉴명은 필수입니다.')
       return
@@ -23,9 +23,10 @@ export function useReport({ onSuccess }) {
       await submitReport({
         storeName: form.storeName.trim(),
         menuName: form.menuName.trim(),
-        carbs:   form.carbs   ? Number(form.carbs)   : null,
-        protein: form.protein ? Number(form.protein) : null,
-        fat:     form.fat     ? Number(form.fat)     : null,
+        carbs:    form.carbs   ? Number(form.carbs)   : null,
+        protein:  form.protein ? Number(form.protein) : null,
+        fat:      form.fat     ? Number(form.fat)     : null,
+        imageUrl,
       })
       reset()
       onSuccess?.()

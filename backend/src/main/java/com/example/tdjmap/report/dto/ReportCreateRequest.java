@@ -17,4 +17,5 @@ public class ReportCreateRequest {
     private Long carbs;
     private Long protein;
     private Long fat;
+    private String imageUrl;
 }
