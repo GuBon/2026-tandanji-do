@@ -47,10 +47,18 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // 인증 불필요: 로그인/토큰 갱신
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/stores/**").permitAll()
+                        // 인증 불필요: 정적 이미지
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
+                        // 인증 불필요: 지도 검색·매장 상세·메뉴·리뷰 조회
+                        .requestMatchers(HttpMethod.GET, "/stores/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/stores/*/menus").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/stores/*/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/stores/*").permitAll()
+                        // 관리자 전용
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // 리뷰·커뮤니티·기록·제보 등 나머지 모두 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
