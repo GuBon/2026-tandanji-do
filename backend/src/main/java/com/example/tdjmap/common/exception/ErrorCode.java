@@ -16,6 +16,7 @@ public enum ErrorCode {
 
     // Post
     POST_NOT_FOUND(404, "게시글을 찾을 수 없습니다."),
+    POST_FORBIDDEN(403, "게시글 삭제 권한이 없습니다."),
 
     // Report
     REPORT_NOT_FOUND(404, "제보를 찾을 수 없습니다."),
@@ -35,6 +36,13 @@ public enum ErrorCode {
     AUTH_INVALID_TOKEN(401, "유효하지 않은 토큰입니다."),
     AUTH_EXPIRED_TOKEN(401, "만료된 토큰입니다."),
     AUTH_KAKAO_ERROR(400, "카카오 인증에 실패했습니다."),
+
+    // Image
+    IMAGE_EMPTY(400, "이미지 파일이 비어 있습니다."),
+    IMAGE_INVALID_TYPE(400, "지원하지 않는 이미지 형식입니다. (jpg, png, webp, gif)"),
+    IMAGE_TOO_LARGE(400, "이미지 크기는 10MB를 초과할 수 없습니다."),
+    IMAGE_INVALID_DOMAIN(400, "잘못된 이미지 도메인입니다."),
+    IMAGE_UPLOAD_FAILED(500, "이미지 저장에 실패했습니다."),
 
     // Common
     FORBIDDEN(403, "접근 권한이 없습니다."),
