@@ -2,8 +2,7 @@ import { useState } from 'react'
 import CalorieHeroCard from './CalorieHeroCard.jsx'
 import ExerciseActivityCard from './ExerciseActivityCard.jsx'
 import HistoryModal from './HistoryModal.jsx'
-
-const BODY_STATS = { height: 182, weight: 76.4 }
+import useAuthStore from '../../store/useAuthStore.js'
 
 function StatCard({ label, value, unit }) {
   return (
@@ -21,6 +20,7 @@ function StatCard({ label, value, unit }) {
 
 export default function ExerciseTab({ exercises, totalCalories, totalMinutes, loading, onRemove }) {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const user = useAuthStore((s) => s.user)
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
@@ -31,14 +31,14 @@ export default function ExerciseTab({ exercises, totalCalories, totalMinutes, lo
         <div className="flex items-baseline gap-1.5">
           <span className="text-xs font-bold text-outline">신장</span>
           <span className="text-lg font-bold font-headline text-on-surface">
-            {BODY_STATS.height}
+            {user?.height ?? '—'}
             <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
           </span>
         </div>
         <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
           <span className="text-xs font-bold text-outline">체중</span>
           <span className="text-lg font-bold font-headline text-on-surface">
-            {BODY_STATS.weight}
+            {user?.weight ?? '—'}
             <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
           </span>
         </div>

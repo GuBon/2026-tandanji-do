@@ -3,16 +3,10 @@ import { useDiet } from './useDiet.js'
 import CalorieHeroCard from './CalorieHeroCard.jsx'
 import DietMealCard from './DietMealCard.jsx'
 import HistoryModal from './HistoryModal.jsx'
+import useAuthStore from '../../store/useAuthStore.js'
 
 const CALORIE_GOAL = 2000
 const MACRO_GOALS = { carbs: 320, protein: 180, fat: 75 }
-
-const DEMO_MEALS = [
-  { id: 'demo1', name: '아보카도 수란 토스트', calories: 320, carbs: 42, protein: 18, fat: 22, emoji: '🥑' },
-  { id: 'demo2', name: '지중해식 파워 볼',     calories: 480, carbs: 58, protein: 24, fat: 12, emoji: '🥗' },
-]
-
-const BODY_STATS = { height: 182, weight: 76.4 }
 
 function MacroBar({ label, current, goal, unit }) {
   const pct = Math.min((current / goal) * 100, 100)
@@ -40,31 +34,29 @@ function MacroBar({ label, current, goal, unit }) {
 export default function DietTab() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const { meals, dailyCalories, removeMealEntry, loading } = useDiet()
+  const user = useAuthStore((s) => s.user)
 
-  const isDemo = meals.length === 0 && !loading
-  const displayMeals = isDemo ? DEMO_MEALS : meals
-  const totalCal     = isDemo ? 1780 : dailyCalories
-  const totalCarbs   = displayMeals.reduce((s, m) => s + (m.carbs   || 0), 0)
-  const totalProtein = displayMeals.reduce((s, m) => s + (m.protein || 0), 0)
-  const totalFat     = displayMeals.reduce((s, m) => s + (m.fat     || 0), 0)
+  const totalCarbs   = meals.reduce((s, m) => s + (m.carbs   || 0), 0)
+  const totalProtein = meals.reduce((s, m) => s + (m.protein || 0), 0)
+  const totalFat     = meals.reduce((s, m) => s + (m.fat     || 0), 0)
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
-      <CalorieHeroCard label="오늘의 섭취 칼로리" value={totalCal} />
+      <CalorieHeroCard label="오늘의 섭취 칼로리" value={dailyCalories} />
 
       {/* 신장 / 체중 */}
       <div className="flex gap-6 px-1">
         <div className="flex items-baseline gap-1.5">
           <span className="text-xs font-bold text-outline">신장</span>
           <span className="text-lg font-bold font-headline text-on-surface">
-            {BODY_STATS.height}
+            {user?.height ?? '—'}
             <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
           </span>
         </div>
         <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
           <span className="text-xs font-bold text-outline">체중</span>
           <span className="text-lg font-bold font-headline text-on-surface">
-            {BODY_STATS.weight}
+            {user?.weight ?? '—'}
             <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
           </span>
         </div>
@@ -93,12 +85,16 @@ export default function DietTab() {
           <div className="h-24 flex items-center justify-center text-sm text-outline-variant">
             불러오는 중...
           </div>
+        ) : meals.length === 0 ? (
+          <div className="h-24 flex items-center justify-center text-sm text-outline-variant">
+            오늘의 식단을 추가해보세요
+          </div>
         ) : (
-          displayMeals.map((meal) => (
+          meals.map((meal) => (
             <DietMealCard
               key={meal.id}
               meal={meal}
-              onRemove={isDemo ? null : () => removeMealEntry(meal)}
+              onRemove={() => removeMealEntry(meal)}
             />
           ))
         )}

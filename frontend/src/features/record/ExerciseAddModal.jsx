@@ -1,25 +1,13 @@
 import { useState } from 'react'
-
-const FALLBACK_TYPES = [
-  { typeId: null, typeName: '사이클',   emoji: '🚴', metValue: 8.5  },
-  { typeId: null, typeName: '수영',     emoji: '🏊', metValue: 10.0 },
-  { typeId: null, typeName: '자전거',   emoji: '🚲', metValue: 7.5  },
-  { typeId: null, typeName: '헬스',     emoji: '🏋️', metValue: 7.0  },
-  { typeId: null, typeName: '런닝',     emoji: '🏃', metValue: 9.8  },
-  { typeId: null, typeName: '줄넘기',   emoji: '🪢', metValue: 12.3 },
-  { typeId: null, typeName: '필라테스', emoji: '🧘', metValue: 3.8  },
-  { typeId: null, typeName: '기타',     emoji: '···', metValue: 5.0 },
-]
-
-const WEIGHT_KG = 70 // 기본값 — 추후 프로필 스토어 연동 예정
+import useAuthStore from '../../store/useAuthStore.js'
 
 // MET 공식: calories = MET * weight(kg) * duration(h)
-function calcCalories(metValue, durationMin) {
-  return Math.round(Number(metValue) * WEIGHT_KG * (Number(durationMin) / 60))
+function calcCalories(metValue, durationMin, weightKg) {
+  return Math.round(Number(metValue) * weightKg * (Number(durationMin) / 60))
 }
 
 export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd }) {
-  const types = exerciseTypes.length > 0 ? exerciseTypes : FALLBACK_TYPES
+  const weightKg = useAuthStore((s) => s.user?.weight) ?? 65
   const [selected, setSelected] = useState(null)
   const [duration, setDuration] = useState('')
   const [detail, setDetail] = useState('')
@@ -27,14 +15,14 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
 
   const handleSubmit = async () => {
     if (!selected || !duration) return
-    const type = types.find((t) => t.typeId === selected || t.typeName === selected)
+    const type = exerciseTypes.find((t) => t.typeId === selected)
     if (!type) return
     setSaving(true)
     try {
       await onAdd({
         typeId: type.typeId,
         durationMin: Number(duration),
-        caloriesBurned: calcCalories(type.metValue, duration),
+        caloriesBurned: calcCalories(type.metValue, duration, weightKg),
         title: detail || type.typeName,
         memo: null,
       })
@@ -45,8 +33,6 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
       setSaving(false)
     }
   }
-
-  const selectedKey = (t) => t.typeId ?? t.typeName
 
   return (
     <div
@@ -68,27 +54,32 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
         {/* 운동 종류 */}
         <div className="flex flex-col gap-3">
           <p className="text-xs font-bold text-on-surface-variant tracking-wide">운동 종류 선택</p>
-          <div className="grid grid-cols-4 gap-2">
-            {types.map((type) => {
-              const key = selectedKey(type)
-              const isActive = selected === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setSelected(key)}
-                  className={[
-                    'flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3 transition-colors',
-                    isActive ? 'bg-primary text-white' : 'bg-surface-container-low text-on-surface',
-                  ].join(' ')}
-                >
-                  <span className="text-2xl leading-none">{type.emoji}</span>
-                  <span className={`text-[11px] font-semibold ${isActive ? 'text-white' : 'text-on-surface-variant'}`}>
-                    {type.typeName}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          {exerciseTypes.length === 0 ? (
+            <div className="h-20 flex items-center justify-center text-sm text-outline-variant">
+              운동 종목을 불러오는 중...
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {exerciseTypes.map((type) => {
+                const isActive = selected === type.typeId
+                return (
+                  <button
+                    key={type.typeId}
+                    onClick={() => setSelected(type.typeId)}
+                    className={[
+                      'flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3 transition-colors',
+                      isActive ? 'bg-primary text-white' : 'bg-surface-container-low text-on-surface',
+                    ].join(' ')}
+                  >
+                    <span className="text-2xl leading-none">{type.emoji}</span>
+                    <span className={`text-[11px] font-semibold ${isActive ? 'text-white' : 'text-on-surface-variant'}`}>
+                      {type.typeName}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* 운동 시간 */}

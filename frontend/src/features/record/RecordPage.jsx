@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageLayout from '../../components/PageLayout.jsx'
 import Header from '../../components/Header.jsx'
-import FAB from '../../components/FAB.jsx'
+import Button from '../../components/Button.jsx'
 import DietTab from './DietTab.jsx'
 import ExerciseTab from './ExerciseTab.jsx'
 import ExerciseAddModal from './ExerciseAddModal.jsx'
@@ -49,7 +49,7 @@ export default function RecordPage() {
     removeExerciseEntry,
   } = useExercise()
 
-  const handleFAB = () => {
+  const handleAdd = () => {
     if (activeTab === 0) navigate('/diet')
     else setExerciseModalOpen(true)
   }
@@ -59,7 +59,7 @@ export default function RecordPage() {
       <PageLayout
         customHeader={
           <>
-            <Header right={<span className="text-base font-bold text-gray-700">기록</span>} />
+            <Header right={<Button variant="gradient" onClick={handleAdd}>기록하기</Button>} />
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
           </>
         }
@@ -76,8 +76,6 @@ export default function RecordPage() {
           />
         )}
       </PageLayout>
-
-      <FAB onClick={handleFAB} className="fixed right-6 bottom-20 z-ui" />
 
       {exerciseModalOpen && (
         <ExerciseAddModal
