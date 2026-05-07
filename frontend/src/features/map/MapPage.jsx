@@ -4,7 +4,6 @@ import MapView from './MapView.jsx'
 import Header from '../../components/Header.jsx'
 import Button from '../../components/Button.jsx'
 import SearchOverlay from './SearchOverlay.jsx'
-import QuickFilters from './QuickFilters.jsx'
 import WeatherWidget from './WeatherWidget.jsx'
 import FilterBottomSheet from './FilterBottomSheet.jsx'
 import ReportModal from './ReportModal.jsx'
@@ -39,8 +38,8 @@ export default function MapPage() {
   }, [mapInstance])
 
   const {
-    activeFilter,
-    setActiveFilter,
+    activeFilters,
+    toggleActiveFilter,
     selectedStore,
     selectStore,
     closeStore,
@@ -52,9 +51,13 @@ export default function MapPage() {
   const { stores, loading, error } = useMapStores()
 
   const visibleStores = stores.filter((s) => {
-    if (!activeFilter) return true
-    if (['GREEN', 'YELLOW', 'RED'].includes(activeFilter)) return s.grade === activeFilter
-    return s.tags?.includes(activeFilter.replace('#', '')) ?? false
+    if (activeFilters.size === 0) return true
+    if (!s.grade) return false
+    const gradeFilters = [...activeFilters].filter((f) => ['GREEN', 'YELLOW', 'RED'].includes(f))
+    const tagFilters = [...activeFilters].filter((f) => f.startsWith('#'))
+    const gradeMatch = gradeFilters.length === 0 || gradeFilters.includes(s.grade)
+    const tagMatch = tagFilters.length === 0 || tagFilters.some((f) => s.tags?.includes(f.replace('#', '')))
+    return gradeMatch && tagMatch
   })
 
   const pixelPositions = useMapMarkers(visibleStores)
@@ -99,7 +102,6 @@ export default function MapPage() {
         })}
 
         <SearchOverlay onFilterClick={toggleFilter} />
-        <QuickFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
         {/* 날씨 + 챗봇 패널 */}
         <div className="absolute right-[19px] top-[128px] w-[54px] z-ui flex flex-col gap-[3px]">
@@ -149,7 +151,13 @@ export default function MapPage() {
       <BottomNavBar />
 
       {/* fixed 모달 — overflow-hidden 밖에서 렌더링 */}
-      {filterOpen && <FilterBottomSheet onClose={closeFilter} />}
+      {filterOpen && (
+        <FilterBottomSheet
+          onClose={closeFilter}
+          activeFilters={activeFilters}
+          onFilterChange={toggleActiveFilter}
+        />
+      )}
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
     </div>
   )

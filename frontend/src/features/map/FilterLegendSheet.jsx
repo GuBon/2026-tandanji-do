@@ -7,10 +7,10 @@ const GRADE_LEGEND = [
 ]
 
 const TAG_LEGEND = [
-  { emoji: '🍗', name: '고단백', desc: '근성장에 유리한 단백질 비중' },
-  { emoji: '🧀', name: '고지방', desc: '키토식이거나 칼로리 밀도가 높아요' },
-  { emoji: '🥙', name: '고탄수', desc: '에너지원이 풍부, 운동 전 식사로 적합' },
-  { emoji: '🥗', name: '저탄수', desc: '탄수화물을 제한한 식단' },
+  { name: '고단백', desc: '근성장에 유리한 단백질 비중' },
+  { name: '고지방', desc: '키토식이거나 칼로리 밀도가 높아요' },
+  { name: '고탄수', desc: '에너지원이 풍부, 운동 전 식사로 적합' },
+  { name: '저탄수', desc: '탄수화물을 제한한 식단' },
 ]
 
 function GradeRow({ item }) {
@@ -28,7 +28,6 @@ function GradeRow({ item }) {
 function TagRow({ item }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <span className="text-xl w-7 text-center">{item.emoji}</span>
       <div className="flex flex-col">
         <span className="text-sm font-bold text-on-surface">
           <span className="text-primary mr-0.5">#</span>{item.name}
