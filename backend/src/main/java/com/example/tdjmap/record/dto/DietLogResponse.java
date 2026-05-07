@@ -19,5 +19,6 @@ public class DietLogResponse {
     private Long logProtein;
     private Long logFat;
     private Long logSugar;
+    private String imgUrl;
     private LocalDateTime ateAt;
 }

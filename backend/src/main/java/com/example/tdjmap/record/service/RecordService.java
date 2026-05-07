@@ -61,6 +61,7 @@ public class RecordService {
                 .logProtein(req.getLogProtein())
                 .logFat(req.getLogFat())
                 .logSugar(req.getLogSugar())
+                .imgUrl(req.getImgUrl())
                 .ateAt(req.getAteAt())
                 .build();
 
@@ -159,6 +160,7 @@ public class RecordService {
                 .logProtein(log.getLogProtein())
                 .logFat(log.getLogFat())
                 .logSugar(log.getLogSugar())
+                .imgUrl(log.getImgUrl())
                 .ateAt(log.getAteAt())
                 .build();
     }

@@ -18,6 +18,7 @@ public class DietLogCreateRequest {
     private Long logProtein;
     private Long logFat;
     private Long logSugar;
+    private String imgUrl;
     @NotNull
     private LocalDateTime ateAt;
 }

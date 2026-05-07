@@ -44,7 +44,7 @@ export function useDiet() {
   const dailyCalories = meals.reduce((s, m) => s + (m.calories || 0), 0)
 
   const addMealEntry = useCallback(
-    async ({ name, calories, carbs = 0, protein = 0, fat = 0, mealType = '간식', ateAt }) => {
+    async ({ name, calories, carbs = 0, protein = 0, fat = 0, mealType = '간식', ateAt, imgUrl = null }) => {
       const saved = await createDietLog({
         foodName: name,
         mealType,
@@ -53,6 +53,7 @@ export function useDiet() {
         logProtein: Number(protein),
         logFat: Number(fat),
         logSugar: 0,
+        imgUrl,
         ateAt: ateAt ?? new Date().toISOString().slice(0, 19),
       })
       addMeal(toStoreShape(saved))

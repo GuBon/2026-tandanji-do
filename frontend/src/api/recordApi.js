@@ -11,10 +11,10 @@ export async function fetchDietLogs(date) {
   return data
 }
 
-export async function createDietLog(payload) {
+export async function createDietLog({ imgUrl, ...rest }) {
   const res = await apiClient('/diet-logs', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...rest, imgUrl: imgUrl ?? null }),
   })
   if (!res.ok) throw new Error(res.status)
   const { data } = await res.json()

@@ -1,7 +1,8 @@
-import PageLayout from '../../components/PageLayout.jsx'
-import { useDiet } from './useDiet.js'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageLayout from '../../components/PageLayout.jsx'
+import ImageUploader from '../../components/ImageUploader.jsx'
+import { useDiet } from './useDiet.js'
 
 const MEAL_TYPES = ['아침', '점심', '저녁', '간식']
 
@@ -16,6 +17,7 @@ export default function DietRecordPage() {
     fat: '',
     mealType: '간식',
   })
+  const [imgUrl, setImgUrl] = useState(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -33,6 +35,7 @@ export default function DietRecordPage() {
         fat: form.fat,
         mealType: form.mealType,
         ateAt: new Date().toISOString().slice(0, 19),
+        imgUrl,
       })
       navigate('/record')
     } catch {
@@ -45,9 +48,11 @@ export default function DietRecordPage() {
   return (
     <PageLayout header={{ title: '식단 기록', left: <button onClick={() => navigate(-1)} className="text-gray-600 text-xl">←</button> }}>
       <div className="px-6 py-4 flex flex-col gap-6">
-        {/* Hero */}
-        <div className="w-full h-32 bg-emerald-50 rounded-2xl flex items-center justify-center shrink-0">
-          <span className="text-4xl">🍽️</span>
+
+        {/* 식사 사진 */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-gray-500">식사 사진 <span className="text-gray-400">(선택)</span></label>
+          <ImageUploader domain="diet" onChange={setImgUrl} aspectRatio="4/3" />
         </div>
 
         {/* 식사 유형 */}
@@ -95,7 +100,6 @@ export default function DietRecordPage() {
 
         {err && <p className="text-sm text-red-500 text-center">{err}</p>}
 
-        {/* 저장 버튼 */}
         <button
           onClick={handleSubmit}
           disabled={!form.name || !form.calories || saving}
