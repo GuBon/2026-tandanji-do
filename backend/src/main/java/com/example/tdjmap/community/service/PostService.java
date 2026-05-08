@@ -19,7 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +40,8 @@ public class PostService {
         Page<Post> posts = (postType != null && !postType.isBlank())
                 ? postRepository.findByPostTypeOrderByCreatedAtDesc(postType, pageable)
                 : postRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return posts.map(p -> PostResponse.from(p, postLikeRepository.countByPostId(p.getId())));
+        Map<Long, Long> likeCounts = loadLikeCounts(posts);
+        return posts.map(p -> PostResponse.from(p, likeCounts.getOrDefault(p.getId(), 0L)));
     }
 
     // ── 게시글 상세 ────────────────────────────────────────────────────────────
@@ -126,5 +130,18 @@ public class PostService {
     private Post findPostOrThrow(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private Map<Long, Long> loadLikeCounts(Page<Post> posts) {
+        if (posts.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return postLikeRepository.countByPostIds(posts.stream().map(Post::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        PostLikeRepository.PostLikeCount::getPostId,
+                        PostLikeRepository.PostLikeCount::getLikeCount
+                ));
     }
 }
