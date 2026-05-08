@@ -19,14 +19,12 @@ const NUTRIENTS = [
   { key: 'carbs',   label: '탄수화물', sub: 'CARBOHYDRATES', sliderMax: 300, defaultMin: 0,  defaultMax: 150 },
   { key: 'protein', label: '단백질',   sub: 'PROTEIN',       sliderMax: 300, defaultMin: 20, defaultMax: 80  },
   { key: 'fat',     label: '지방',     sub: 'FAT',           sliderMax: 150, defaultMin: 0,  defaultMax: 40  },
-  { key: 'sugar',   label: '당류',     sub: 'SUGAR',         sliderMax: 80,  defaultMin: 0,  defaultMax: 15  },
 ]
 
 const DEFAULTS = {
   carbs:   { min: 0,  max: 150 },
   protein: { min: 20, max: 80  },
   fat:     { min: 0,  max: 40  },
-  sugar:   { min: 0,  max: 15  },
 }
 
 const THUMB =
@@ -87,7 +85,13 @@ function NutrientSlider({ label, sub, sliderMax, minVal, maxVal, onMinChange, on
   )
 }
 
-export default function FilterBottomSheet({ onClose, activeFilters, onFilterChange }) {
+export default function FilterBottomSheet({
+  onClose,
+  activeFilters,
+  onFilterChange,
+  onApplyNutritionFilters,
+  onResetNutritionFilters,
+}) {
   const [values, setValues] = useState(DEFAULTS)
   const [legendOpen, setLegendOpen] = useState(false)
 
@@ -97,6 +101,12 @@ export default function FilterBottomSheet({ onClose, activeFilters, onFilterChan
   const handleReset = () => {
     setValues(DEFAULTS)
     onFilterChange(null)
+    onResetNutritionFilters?.()
+  }
+
+  const handleApply = () => {
+    onApplyNutritionFilters?.(values)
+    onClose()
   }
 
   return (
@@ -204,7 +214,7 @@ export default function FilterBottomSheet({ onClose, activeFilters, onFilterChan
         {/* 버튼 */}
         <div className="px-6 py-4 pb-10 flex gap-3 shrink-0 border-t border-gray-100">
           <Button variant="sheet-cancel" onClick={handleReset}>초기화</Button>
-          <Button variant="sheet-confirm" onClick={onClose}>적용하기</Button>
+          <Button variant="sheet-confirm" onClick={handleApply}>적용하기</Button>
         </div>
       </div>
 
