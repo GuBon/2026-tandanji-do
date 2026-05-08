@@ -14,7 +14,6 @@ public class ExerciseLogCreateRequest {
     @NotNull
     @Min(1)
     private Long durationMin;
-    @NotNull
     private Long caloriesBurned;
     private String memo;
 }

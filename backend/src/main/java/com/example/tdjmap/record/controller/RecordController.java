@@ -2,7 +2,9 @@ package com.example.tdjmap.record.controller;
 
 import com.example.tdjmap.common.ApiResponse;
 import com.example.tdjmap.record.dto.*;
-import com.example.tdjmap.record.service.RecordService;
+import com.example.tdjmap.record.service.DietRecordService;
+import com.example.tdjmap.record.service.ExerciseRecordService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RecordController {
 
-    private final RecordService recordService;
+    private final DietRecordService dietRecordService;
+    private final ExerciseRecordService exerciseRecordService;
 
     // ── 식단 기록 ──────────────────────────────────────────────────────────────
 
@@ -23,19 +26,19 @@ public class RecordController {
     public ResponseEntity<ApiResponse<List<DietLogResponse>>> getDietLogs(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(recordService.getDietLogs(date)));
+        return ResponseEntity.ok(ApiResponse.ok(dietRecordService.getDietLogs(date)));
     }
 
     @PostMapping("/diet-logs")
     public ResponseEntity<ApiResponse<DietLogResponse>> createDietLog(
-            @RequestBody DietLogCreateRequest request
+            @Valid @RequestBody DietLogCreateRequest request
     ) {
-        return ResponseEntity.status(201).body(ApiResponse.created(recordService.createDietLog(request)));
+        return ResponseEntity.status(201).body(ApiResponse.created(dietRecordService.createDietLog(request)));
     }
 
     @DeleteMapping("/diet-logs/{logId}")
     public ResponseEntity<ApiResponse<Void>> deleteDietLog(@PathVariable Long logId) {
-        recordService.deleteDietLog(logId);
+        dietRecordService.deleteDietLog(logId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -43,7 +46,7 @@ public class RecordController {
 
     @GetMapping("/exercise-types")
     public ResponseEntity<ApiResponse<List<ExerciseTypeResponse>>> getExerciseTypes() {
-        return ResponseEntity.ok(ApiResponse.ok(recordService.getExerciseTypes()));
+        return ResponseEntity.ok(ApiResponse.ok(exerciseRecordService.getExerciseTypes()));
     }
 
     // ── 운동 기록 ──────────────────────────────────────────────────────────────
@@ -52,19 +55,19 @@ public class RecordController {
     public ResponseEntity<ApiResponse<List<ExerciseLogResponse>>> getExerciseLogs(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(recordService.getExerciseLogs(date)));
+        return ResponseEntity.ok(ApiResponse.ok(exerciseRecordService.getExerciseLogs(date)));
     }
 
     @PostMapping("/exercise-logs")
     public ResponseEntity<ApiResponse<ExerciseLogResponse>> createExerciseLog(
-            @RequestBody ExerciseLogCreateRequest request
+            @Valid @RequestBody ExerciseLogCreateRequest request
     ) {
-        return ResponseEntity.status(201).body(ApiResponse.created(recordService.createExerciseLog(request)));
+        return ResponseEntity.status(201).body(ApiResponse.created(exerciseRecordService.createExerciseLog(request)));
     }
 
     @DeleteMapping("/exercise-logs/{exerciseId}")
     public ResponseEntity<ApiResponse<Void>> deleteExerciseLog(@PathVariable Long exerciseId) {
-        recordService.deleteExerciseLog(exerciseId);
+        exerciseRecordService.deleteExerciseLog(exerciseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
