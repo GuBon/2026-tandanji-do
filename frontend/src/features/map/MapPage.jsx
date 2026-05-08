@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MapView from './MapView.jsx'
 import Header from '../../components/Header.jsx'
@@ -10,6 +10,7 @@ import ReportModal from './ReportModal.jsx'
 import MapMarker from './MapMarker.jsx'
 import StoreCard from './StoreCard.jsx'
 import BottomNavBar from '../../components/BottomNavBar.jsx'
+import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import useMapUI from './useMapUI.js'
 import useMapMarkers from './useMapMarkers.js'
 import useMapStore from '../../store/useMapStore.js'
@@ -17,6 +18,7 @@ import { useGeolocation } from './useGeolocation.js'
 import { useStoreDistance } from './useStoreDistance.js'
 import useMapStores from './useMapStores.js'
 import WeatherCanvas from './WeatherCanvas.jsx'
+import { useAuthRequired } from '../../hooks/useAuthRequired.js'
 
 const IS_DEV = import.meta.env.DEV
 const WEATHER_OPTIONS = ['sunny', 'rain', 'snow']
@@ -24,6 +26,10 @@ const WEATHER_OPTIONS = ['sunny', 'rain', 'snow']
 export default function MapPage() {
   const navigate = useNavigate()
   const [reportOpen, setReportOpen] = useState(false)
+  const [nutritionFilters, setNutritionFilters] = useState(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
   const setWeather = useMapStore((s) => s.setWeather)
   const weather = useMapStore((s) => s.weather)
   const { locate } = useGeolocation()
@@ -37,6 +43,13 @@ export default function MapPage() {
     return () => mapInstance.un('moveend', onMoveEnd)
   }, [mapInstance])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchKeyword(searchInput.trim())
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
+
   const {
     activeFilters,
     toggleActiveFilter,
@@ -48,16 +61,23 @@ export default function MapPage() {
     closeFilter,
   } = useMapUI()
 
-  const { stores, loading, error } = useMapStores()
+  const storeFilters = useMemo(() => ({
+    ...(searchKeyword.trim() ? { keyword: searchKeyword.trim() } : {}),
+  }), [searchKeyword])
+
+  const { stores, loading, error } = useMapStores(storeFilters)
 
   const visibleStores = stores.filter((s) => {
-    if (activeFilters.size === 0) return true
-    if (!s.grade) return false
     const gradeFilters = [...activeFilters].filter((f) => ['GREEN', 'YELLOW', 'RED'].includes(f))
     const tagFilters = [...activeFilters].filter((f) => f.startsWith('#'))
     const gradeMatch = gradeFilters.length === 0 || gradeFilters.includes(s.grade)
     const tagMatch = tagFilters.length === 0 || tagFilters.some((f) => s.tags?.includes(f.replace('#', '')))
-    return gradeMatch && tagMatch
+    const nutritionMatch = !nutritionFilters || Object.entries(nutritionFilters).every(([key, range]) => {
+      const value = s.raw?.[key]
+      if (value == null) return false
+      return value >= range.min && value <= range.max
+    })
+    return gradeMatch && tagMatch && nutritionMatch
   })
 
   const pixelPositions = useMapMarkers(visibleStores)
@@ -65,7 +85,7 @@ export default function MapPage() {
 
   return (
     <div className="flex flex-col w-full h-dvh overflow-hidden bg-gray-100">
-      <Header right={<Button variant="gradient" onClick={() => setReportOpen(true)}>제보하기</Button>} />
+      <Header right={<Button variant="gradient" onClick={() => requireAuth(() => setReportOpen(true))}>제보하기</Button>} />
 
       <div className="relative flex-1 overflow-hidden">
         <MapView />
@@ -101,14 +121,19 @@ export default function MapPage() {
           )
         })}
 
-        <SearchOverlay onFilterClick={toggleFilter} />
+        <SearchOverlay
+          value={searchInput}
+          onChange={setSearchInput}
+          onSearch={(keyword = searchInput) => setSearchKeyword(keyword)}
+          onFilterClick={toggleFilter}
+        />
 
         {/* 날씨 + 챗봇 패널 */}
         <div className="absolute right-[19px] top-[128px] w-[54px] z-ui flex flex-col gap-[3px]">
           <WeatherWidget />
           <button
             onClick={() => navigate('/chatbot')}
-            className="w-full h-14 bg-white/40 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl hover:bg-white/60 transition-colors"
+            className="w-full h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl hover:bg-white/20 transition-colors"
           >
             🤖
           </button>
@@ -117,7 +142,7 @@ export default function MapPage() {
         {/* 내 위치 FAB */}
         <button
           onClick={locate}
-          className="absolute right-5 bottom-8 w-14 h-14 z-ui bg-white rounded-xl border border-primary/10 shadow-sm flex items-center justify-center hover:shadow-md transition-shadow"
+          className="absolute right-5 bottom-8 w-14 h-14 z-ui bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-sm flex items-center justify-center hover:bg-white/20 transition-colors"
         >
           <img src="/images/LocationIcon.png" alt="내 위치" className="w-6 h-6" />
         </button>
@@ -156,9 +181,12 @@ export default function MapPage() {
           onClose={closeFilter}
           activeFilters={activeFilters}
           onFilterChange={toggleActiveFilter}
+          onApplyNutritionFilters={(values) => setNutritionFilters(values)}
+          onResetNutritionFilters={() => setNutritionFilters(null)}
         />
       )}
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
+      {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )
 }
