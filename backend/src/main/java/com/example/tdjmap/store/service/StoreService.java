@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -65,6 +64,7 @@ public class StoreService {
                 .latitude(store.getLatitude().doubleValue())
                 .longitude(store.getLongitude().doubleValue())
                 .category(store.getCategory())
+                .imageUrl(store.getImageUrl())
                 .brand(brandDto)
                 .build();
     }
@@ -74,9 +74,9 @@ public class StoreService {
     public List<MenuResponse> getStoreMenus(Long storeId) {
         Store store = findStoreOrThrow(storeId);
         Brand brand = store.getBrand();
-        if (brand == null) return Collections.emptyList();
+        Long brandId = brand != null ? brand.getId() : null;
 
-        return menuRepository.findByBrand_IdOrderByIdAsc(brand.getId()).stream()
+        return menuRepository.findStoreMenus(storeId, brandId).stream()
                 .map(menu -> {
                     String grade = null;
                     List<String> tags = null;
@@ -100,7 +100,6 @@ public class StoreService {
                             .carbs(menu.getCarbs())
                             .protein(menu.getProtein())
                             .fat(menu.getFat())
-                            .sugar(menu.getSugar())
                             .menuUrl(menu.getMenuUrl())
                             .nutritionGrade(grade)
                             .nutritionTags(tags)

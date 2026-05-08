@@ -14,6 +14,7 @@ public class StoreDetailResponse {
     private Double latitude;
     private Double longitude;
     private String category;
+    private String imageUrl;
     private BrandDto brand;
 
     @Getter

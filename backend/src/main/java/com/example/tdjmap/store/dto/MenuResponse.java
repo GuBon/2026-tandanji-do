@@ -17,7 +17,6 @@ public class MenuResponse {
     private Long carbs;
     private Long protein;
     private Long fat;
-    private Long sugar;
     private String menuUrl;
     private String nutritionGrade;
     private List<String> nutritionTags;
