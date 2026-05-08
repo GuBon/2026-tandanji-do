@@ -4,24 +4,33 @@ function deriveTagsFromMacro(carbs, protein, fat) {
   const tags = []
   if (protein >= 25) tags.push('고단백')
   if (carbs <= 40)   tags.push('저탄수')
+  if (carbs >= 80)   tags.push('고탄수')
   if (fat <= 10)     tags.push('저지방')
+  if (fat >= 25)     tags.push('고지방')
   return tags
 }
 
 function normalizeMarker(raw) {
   const { carbs, protein, fat, nutritionGrade } = raw.markerMacro ?? {}
+  const nutritionTags = raw.markerMacro?.nutritionTags
   return {
     id:        raw.storeId,
     name:      raw.storeName,
+    address:   raw.address,
     lat:       raw.latitude,
     lon:       raw.longitude,
     category:  raw.category,
     grade:     nutritionGrade ?? null,
-    tags:      deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
+    tags:      nutritionTags?.length ? nutritionTags : deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
     nutrition: {
       carbs:   carbs   != null ? `${carbs}g`   : '--',
       protein: protein != null ? `${protein}g` : '--',
       fat:     fat     != null ? `${fat}g`     : '--',
+    },
+    raw: {
+      carbs:   carbs   ?? null,
+      protein: protein ?? null,
+      fat:     fat     ?? null,
     },
   }
 }
@@ -34,7 +43,7 @@ function normalizeStoreDetail(rawDetail, rawMenus) {
     address:   rawDetail.address,
     lat:       rawDetail.latitude,
     lon:       rawDetail.longitude,
-    image:     rawDetail.brand?.logoUrl ?? null,
+    image:     rawDetail.imageUrl ?? rawDetail.brand?.logoUrl ?? null,
     grade:     null,
     tags:      [],
     nutrition: { carbs: '--', protein: '--', fat: '--' },
@@ -60,11 +69,13 @@ function normalizeStoreDetail(rawDetail, rawMenus) {
   }
 }
 
-export async function searchStores({ swLat, swLng, neLat, neLng }) {
+export async function searchStores({ swLat, swLng, neLat, neLng, filters = null, signal } = {}) {
   const params = new URLSearchParams({
     sw_lat: swLat, sw_lng: swLng, ne_lat: neLat, ne_lng: neLng,
   })
-  const res = await apiClient(`/stores/search?${params}`)
+  if (filters?.keyword?.trim()) params.set('q', filters.keyword.trim())
+  if (filters?.category) params.set('category', filters.category)
+  const res = await apiClient(`/stores/search?${params}`, { signal })
   if (!res.ok) throw new Error(`searchStores ${res.status}`)
   const { data } = await res.json()
   return (data ?? []).map(normalizeMarker)

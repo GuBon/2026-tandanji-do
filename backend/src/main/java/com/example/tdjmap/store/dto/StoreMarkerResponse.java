@@ -12,6 +12,7 @@ public class StoreMarkerResponse {
     private Long storeId;
     private Long brandId;
     private String storeName;
+    private String address;
     private Double latitude;
     private Double longitude;
     private String category;
