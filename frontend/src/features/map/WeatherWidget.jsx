@@ -21,7 +21,7 @@ export default function WeatherWidget() {
     <>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full h-[72px] flex flex-col items-center justify-center bg-white/40 backdrop-blur-md rounded-2xl gap-1 hover:bg-white/60 transition-colors"
+        className="w-full h-[72px] flex flex-col items-center justify-center bg-white/10 backdrop-blur-md rounded-2xl gap-1 hover:bg-white/20 transition-colors"
       >
         <span className="text-2xl leading-none">{EMOJI[weather] ?? '☀️'}</span>
         <span className="text-[11px] font-semibold text-gray-700">{tempLabel}</span>

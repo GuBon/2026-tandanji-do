@@ -2,9 +2,9 @@ import { create } from 'zustand'
 
 const useMapStore = create((set) => ({
   mapInstance: null,
-  center: [14135000, 4518000], // 서울 (EPSG:3857)
+  center: [14104426.167437151, 4503085.822505046], // EPSG:5179 [929443.3747000694, 1940122.789599896] 변환값
   zoom: 12,
-  latLon: { lat: 37.5665, lon: 126.9780 }, // 서울 시청 기본값, 위치 허용 시 갱신
+  latLon: { lat: 37.45761500133742, lon: 126.7022159994412 }, // 위치 허용 시 갱신
   weather: 'sunny',      // 'sunny' | 'partly-cloudy' | 'cloudy' | 'rain' | 'snow'
   temperature: null,     // 기온 (°C)
   forecast: [],          // [{ time, weather, temp }]

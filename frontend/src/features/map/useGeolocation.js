@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
 import { fromLonLat } from 'ol/proj'
 import useMapStore from '../../store/useMapStore'
 
@@ -88,10 +88,6 @@ export function useGeolocation() {
       console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
     }
   }, [applyLocation])
-
-  useEffect(() => {
-    locate()
-  }, [locate])
 
   return { locate }
 }

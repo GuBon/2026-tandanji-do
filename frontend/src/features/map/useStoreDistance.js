@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import useMapStore from '../../store/useMapStore.js'
+import useAuthStore from '../../store/useAuthStore.js'
 
 // 도보 평균 속도 4km/h → 약 67m/min
 const WALK_SPEED_M_PER_MIN = 67
 // 걷기 소모 칼로리: 거리(km) × 체중(kg) × 0.7
 const KCAL_PER_KM_PER_KG = 0.7
-// 프로필 스토어 연동 전 임시 체중 (users.weight)
-const DEFAULT_WEIGHT_KG = 76.4
+const DEFAULT_WEIGHT_KG = 65
 
 // Haversine 공식 — WGS84 두 좌표 사이 직선거리(m)
 function haversineM(lat1, lon1, lat2, lon2) {
@@ -39,6 +39,7 @@ function formatKcal(meters, weightKg) {
 // 반환: { [storeId]: { distance, walkTime, kcal } }
 export function useStoreDistance(stores) {
   const latLon = useMapStore((s) => s.latLon)
+  const userWeight = useAuthStore((s) => s.user?.weight)
 
   return useMemo(() => {
     if (!latLon?.lat || !latLon?.lon) return {}
@@ -52,10 +53,10 @@ export function useStoreDistance(stores) {
           {
             distance: formatDistance(meters),
             walkTime: formatWalkTime(meters),
-            kcal:     formatKcal(meters, DEFAULT_WEIGHT_KG),
+            kcal:     formatKcal(meters, userWeight ?? DEFAULT_WEIGHT_KG),
           },
         ]
       }),
     )
-  }, [latLon, stores])
+  }, [latLon, stores, userWeight])
 }
