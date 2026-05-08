@@ -4,4 +4,15 @@
 .env.*
 
 CLAUDE.md
+**/CLAUDE.md
+*.log
+**/*.log
+*.log.*
+**/*.log.*
 .collector/
+
+# Presentation materials and generation helpers
+ppt/
+.codex-ppt-tools/
+tools/create-final-ppt.mjs
+tools/extract-pdf-text.mjs
