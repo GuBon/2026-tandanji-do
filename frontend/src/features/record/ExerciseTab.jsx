@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CalorieHeroCard from './CalorieHeroCard.jsx'
 import ExerciseActivityCard from './ExerciseActivityCard.jsx'
 import HistoryModal from './HistoryModal.jsx'
+import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import useAuthStore from '../../store/useAuthStore.js'
+import { useAuthRequired } from '../../hooks/useAuthRequired.js'
 
 function StatCard({ label, value, unit }) {
   return (
@@ -20,29 +23,44 @@ function StatCard({ label, value, unit }) {
 
 export default function ExerciseTab({ exercises, totalCalories, totalMinutes, loading, onRemove }) {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
+  const handleBodyEdit = () => {
+    requireAuth(() => navigate('/profile/body', { state: { from: '/record' } }))
+  }
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
-      <CalorieHeroCard label="오늘의 소비 칼로리" value={totalCalories} />
-
       {/* 신장 / 체중 */}
-      <div className="flex gap-6 px-1">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs font-bold text-outline">신장</span>
-          <span className="text-lg font-bold font-headline text-on-surface">
-            {user?.height ?? '—'}
-            <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
-          </span>
+      <div className="relative flex items-center justify-center px-1">
+        <div className="flex gap-6">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs font-bold text-outline">신장</span>
+            <span className="text-lg font-bold font-headline text-on-surface">
+              {user?.height ?? '—'}
+              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
+            <span className="text-xs font-bold text-outline">체중</span>
+            <span className="text-lg font-bold font-headline text-on-surface">
+              {user?.weight ?? '—'}
+              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
+            </span>
+          </div>
         </div>
-        <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
-          <span className="text-xs font-bold text-outline">체중</span>
-          <span className="text-lg font-bold font-headline text-on-surface">
-            {user?.weight ?? '—'}
-            <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={handleBodyEdit}
+          className="absolute right-1 px-1 text-base leading-none"
+          aria-label="신장 체중 수정"
+        >
+          ✏️
+        </button>
       </div>
+
+      <CalorieHeroCard label="오늘의 소비 칼로리" value={totalCalories} />
 
       {/* 통계 그리드 */}
       <div className="grid grid-cols-2 gap-4">
@@ -55,7 +73,7 @@ export default function ExerciseTab({ exercises, totalCalories, totalMinutes, lo
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-widest text-outline">오늘의 운동</h3>
           <button
-            onClick={() => setHistoryOpen(true)}
+            onClick={() => requireAuth(() => setHistoryOpen(true))}
             className="text-xs font-bold bg-primary text-white px-3 py-1 rounded-full"
           >
             내 기록
@@ -84,6 +102,7 @@ export default function ExerciseTab({ exercises, totalCalories, totalMinutes, lo
       {historyOpen && (
         <HistoryModal type="exercise" onClose={() => setHistoryOpen(false)} />
       )}
+      {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )
 }

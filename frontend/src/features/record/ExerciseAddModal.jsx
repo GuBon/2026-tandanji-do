@@ -1,13 +1,6 @@
 import { useState } from 'react'
-import useAuthStore from '../../store/useAuthStore.js'
 
-// MET 공식: calories = MET * weight(kg) * duration(h)
-function calcCalories(metValue, durationMin, weightKg) {
-  return Math.round(Number(metValue) * weightKg * (Number(durationMin) / 60))
-}
-
-export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd }) {
-  const weightKg = useAuthStore((s) => s.user?.weight) ?? 65
+export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoading = false, onAdd }) {
   const [selected, setSelected] = useState(null)
   const [duration, setDuration] = useState('')
   const [detail, setDetail] = useState('')
@@ -22,7 +15,6 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
       await onAdd({
         typeId: type.typeId,
         durationMin: Number(duration),
-        caloriesBurned: calcCalories(type.metValue, duration, weightKg),
         title: detail || type.typeName,
         memo: null,
       })
@@ -54,9 +46,13 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
         {/* 운동 종류 */}
         <div className="flex flex-col gap-3">
           <p className="text-xs font-bold text-on-surface-variant tracking-wide">운동 종류 선택</p>
-          {exerciseTypes.length === 0 ? (
+          {typesLoading ? (
             <div className="h-20 flex items-center justify-center text-sm text-outline-variant">
               운동 종목을 불러오는 중...
+            </div>
+          ) : exerciseTypes.length === 0 ? (
+            <div className="h-20 flex items-center justify-center text-sm text-red-400">
+              운동 종목을 불러오지 못했습니다
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
@@ -88,12 +84,13 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], onAdd })
           <div className="h-16 bg-surface-container-low rounded-2xl flex items-center px-5 gap-3">
             <input
               type="number"
+              inputMode="numeric"
               placeholder="45"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="flex-1 bg-transparent text-2xl font-bold font-headline text-on-surface outline-none placeholder:text-outline-variant"
+              className="min-w-0 flex-1 bg-transparent text-2xl font-bold font-headline text-on-surface outline-none placeholder:text-outline-variant [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
-            <span className="text-sm font-bold text-outline-variant tracking-widest">MIN</span>
+            <span className="shrink-0 text-sm font-bold text-outline-variant tracking-widest">MIN</span>
           </div>
         </div>
 

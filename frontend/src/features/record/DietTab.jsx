@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useDiet } from './useDiet.js'
 import CalorieHeroCard from './CalorieHeroCard.jsx'
 import DietMealCard from './DietMealCard.jsx'
 import HistoryModal from './HistoryModal.jsx'
+import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import useAuthStore from '../../store/useAuthStore.js'
+import { useAuthRequired } from '../../hooks/useAuthRequired.js'
 
 const CALORIE_GOAL = 2000
 const MACRO_GOALS = { carbs: 320, protein: 180, fat: 75 }
@@ -33,34 +36,49 @@ function MacroBar({ label, current, goal, unit }) {
 
 export default function DietTab() {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const navigate = useNavigate()
   const { meals, dailyCalories, removeMealEntry, loading } = useDiet()
   const user = useAuthStore((s) => s.user)
+  const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
 
   const totalCarbs   = meals.reduce((s, m) => s + (m.carbs   || 0), 0)
   const totalProtein = meals.reduce((s, m) => s + (m.protein || 0), 0)
   const totalFat     = meals.reduce((s, m) => s + (m.fat     || 0), 0)
+  const handleBodyEdit = () => {
+    requireAuth(() => navigate('/profile/body', { state: { from: '/record' } }))
+  }
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
-      <CalorieHeroCard label="오늘의 섭취 칼로리" value={dailyCalories} />
-
       {/* 신장 / 체중 */}
-      <div className="flex gap-6 px-1">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs font-bold text-outline">신장</span>
-          <span className="text-lg font-bold font-headline text-on-surface">
-            {user?.height ?? '—'}
-            <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
-          </span>
+      <div className="relative flex items-center justify-center px-1">
+        <div className="flex gap-6">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs font-bold text-outline">신장</span>
+            <span className="text-lg font-bold font-headline text-on-surface">
+              {user?.height ?? '—'}
+              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
+            <span className="text-xs font-bold text-outline">체중</span>
+            <span className="text-lg font-bold font-headline text-on-surface">
+              {user?.weight ?? '—'}
+              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
+            </span>
+          </div>
         </div>
-        <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
-          <span className="text-xs font-bold text-outline">체중</span>
-          <span className="text-lg font-bold font-headline text-on-surface">
-            {user?.weight ?? '—'}
-            <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={handleBodyEdit}
+          className="absolute right-1 px-1 text-base leading-none"
+          aria-label="신장 체중 수정"
+        >
+          ✏️
+        </button>
       </div>
+
+      <CalorieHeroCard label="오늘의 섭취 칼로리" value={dailyCalories} />
 
       {/* 매크로 카드 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-outline-variant/10 space-y-5">
@@ -74,7 +92,7 @@ export default function DietTab() {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-widest text-outline">오늘의 식단</h3>
           <button
-            onClick={() => setHistoryOpen(true)}
+            onClick={() => requireAuth(() => setHistoryOpen(true))}
             className="text-xs font-bold bg-primary text-white px-3 py-1 rounded-full"
           >
             내 기록
@@ -103,6 +121,7 @@ export default function DietTab() {
       {historyOpen && (
         <HistoryModal type="diet" onClose={() => setHistoryOpen(false)} />
       )}
+      {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )
 }

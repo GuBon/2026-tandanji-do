@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageLayout from '../../components/PageLayout.jsx'
 import ImageUploader from '../../components/ImageUploader.jsx'
 import { useDiet } from './useDiet.js'
+import { toLocalDateTimeStr } from '../../api/recordApi.js'
 
 const MEAL_TYPES = ['아침', '점심', '저녁', '간식']
 
@@ -34,7 +35,7 @@ export default function DietRecordPage() {
         protein: form.protein,
         fat: form.fat,
         mealType: form.mealType,
-        ateAt: new Date().toISOString().slice(0, 19),
+        ateAt: toLocalDateTimeStr(),
         imgUrl,
       })
       navigate('/record')
