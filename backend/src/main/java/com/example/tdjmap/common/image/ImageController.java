@@ -17,7 +17,7 @@ public class ImageController {
     private final ImageService imageService;
 
     /**
-     * POST /images/upload?domain=stores|brands|menus|posts|diet|users|reviews
+     * POST /images/upload?domain=stores|brands|menus|posts|diet|users|reviews|reports
      * Content-Type: multipart/form-data
      * 파라미터: file (이미지 파일)
      * 응답: { imageUrl: "http://localhost:8080/images/{domain}/{uuid}.jpg" }
