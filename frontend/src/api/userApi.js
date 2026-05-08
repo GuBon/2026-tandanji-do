@@ -6,3 +6,13 @@ export async function fetchMe() {
   const { data } = await res.json()
   return data
 }
+
+export async function updateMe(payload) {
+  const res = await apiClient('/users/me', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body?.message ?? '프로필 저장에 실패했습니다.')
+  return body.data
+}
