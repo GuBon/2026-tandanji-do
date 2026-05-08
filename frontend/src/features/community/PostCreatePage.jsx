@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Header from '../../components/Header.jsx'
 import ImageUploader from '../../components/ImageUploader.jsx'
+import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import { createPost } from '../../api/postApi.js'
+import { useAuthRequired } from '../../hooks/useAuthRequired.js'
+import useAuthStore from '../../store/useAuthStore.js'
 
 const TABS = ['식단 공유', '오운완', '자유 게시판']
 
@@ -21,6 +24,8 @@ const CloseIcon = () => (
 export default function PostCreatePage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
 
   const [postType, setPostType] = useState(location.state?.postType ?? TABS[0])
   const [title, setTitle] = useState('')
@@ -32,7 +37,7 @@ export default function PostCreatePage() {
 
   const canSubmit = title.trim() && content.trim() && !saving
 
-  const handleSubmit = async () => {
+  const submitPost = async () => {
     if (!canSubmit) return
     setSaving(true)
     setErr(null)
@@ -45,6 +50,8 @@ export default function PostCreatePage() {
       setSaving(false)
     }
   }
+
+  const handleSubmit = () => requireAuth(submitPost)
 
   return (
     <div className="w-full h-dvh flex flex-col overflow-hidden bg-white">
@@ -114,11 +121,21 @@ export default function PostCreatePage() {
               </div>
             </div>
 
-            <ImageUploader
-              domain="posts"
-              onChange={setImageUrl}
-              aspectRatio={ratio}
-            />
+            {user ? (
+              <ImageUploader
+                domain="posts"
+                onChange={setImageUrl}
+                aspectRatio={ratio}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => requireAuth(() => {})}
+                className="aspect-[4/5] w-full rounded-2xl border border-dashed border-gray-200 bg-surface-container-low text-sm font-semibold text-gray-400"
+              >
+                로그인 후 이미지 첨부 가능
+              </button>
+            )}
           </div>
 
           {/* 제목 */}
@@ -155,6 +172,7 @@ export default function PostCreatePage() {
           </p>
         </div>
       </main>
+      {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )
 }
