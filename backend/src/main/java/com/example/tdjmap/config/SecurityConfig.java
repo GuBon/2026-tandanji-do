@@ -56,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/stores/*/menus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/stores/*/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/stores/*").permitAll()
+                        // 인증 불필요: 커뮤니티 게시글 조회
+                        .requestMatchers(HttpMethod.GET, "/posts").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
                         // 관리자 전용
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // 리뷰·커뮤니티·기록·제보 등 나머지 모두 인증 필요
@@ -68,7 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
