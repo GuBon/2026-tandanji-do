@@ -1,43 +1,277 @@
-# CLAUDE.md (Frontend - TDJMap)
+# TDJMap — Frontend
 
-사용자 위치 기반 GIS 시각화(V-World), 실시간 기상 넛지, 식단/활동 대시보드를 제공하는 React 기반 프론트엔드.
+## 1. 시스템 컨텍스트
 
-## 🛠 Tech Stack
-- **Framework**: React 18+ (Vite)
-- **GIS Engine**: OpenLayers
-- **Map Source**: V-World WMTS/WMS API
-- **State Management**: Zustand
-- **Styling**: Tailwind CSS
-- **AI Interface**: MCP Host Implementation
+**역할**: 모바일 퍼스트 웹 앱 — 매장 위치 지도 + 영양정보 + 식단/운동 기록  
+**스택**: React 18 · Vite · Zustand · OpenLayers 9 · Tailwind CSS · React Router v7
 
-## 🏗 Directory Structure (Feature-based)
-- **`src/features/map/`**: OpenLayers 렌더링 및 레이어 제어 로직.
-- **`src/features/auth/`**: 카카오 로그인 및 토큰 관리.
-- **`src/features/diet/`**: 식단 입력 및 영양 정보 시각화.
-- **`src/store/`**: Zustand 기반 전역 상태 관리.
+### 디렉토리 구조
 
-## 📐 Conventions
+```
+src/
+├── api/               apiClient.js storeApi.js recordApi.js reportApi.js
+│                      imageApi.js   — POST /images/upload (multipart, JWT 자동 주입)
+│                      postApi.js    — GET/POST/DELETE /posts + 좋아요 상태/토글
+├── components/        PageLayout Header BottomNavBar Button NutritionCell
+│                      ImageUploader — 이미지 업로드 공통 컴포넌트 (domain, onChange, aspectRatio)
+├── features/
+│   ├── auth/          AuthGuard useKakaoLogin OAuthCallbackPage
+│   ├── admin/         AdminGuard AdminReportPage useAdminReports
+│   ├── map/           MapPage MapView + 커스텀 훅 + 모달/오버레이
+│   │                  MapStorePage + useStoreDetail + StoreDetailSections
+│   ├── record/        RecordPage(탭) DietTab ExerciseTab useDiet useExercise + 모달들
+│   ├── chatbot/       ChatbotPage useChatbot
+│   └── community/     CommunityPage PostCreatePage PostDetailPage
+└── store/             useAuthStore useDietStore useMapStore useExerciseStore
+```
 
-**Naming**
+### 라우팅 구조
+
+```
+/oauth/callback       OAuthCallbackPage  (AuthGuard 바깥 — 카카오 콜백)
+/                   → /map (리다이렉트)
+/map                  MapPage
+/map/store/:id        MapStorePage
+/record               RecordPage (식단/운동 탭)
+/chatbot              ChatbotPage
+/community            CommunityPage
+/community/create     PostCreatePage
+/community/post/:id   PostDetailPage
+/admin/reports        AdminReportPage  (AdminGuard 보호 — role: ADMIN 필요)
+```
+
+`/oauth/callback`을 제외한 모든 라우트는 `AuthGuard`로 보호됨 (카카오 로그인 또는 게스트 모드).  
+새로고침 직후 access token 복원 중에는 자식 라우트를 렌더링하지 않는다. `user`는 persist되지만 access token은 메모리라, 복원 전 API 호출은 401을 만들 수 있다.
+`/admin/reports`는 `AuthGuard` 내부에서 추가로 `AdminGuard`(role 검사)가 중첩 적용됨.
+
+### 환경변수 (.env)
+
+```
+VITE_VWORLD_API_KEY=           V-World 지도 API
+VITE_KAKAO_APP_KEY=            카카오 JavaScript 키 (Kakao SDK 초기화)
+VITE_KAKAO_REDIRECT_URI=       카카오 콜백 URI (http://localhost:5173/oauth/callback)
+VITE_WEATHER_API_KEY=          기상청 API
+VITE_API_BASE_URL=             백엔드 API (http://localhost:8080)
+```
+
+---
+
+## 2. 행동 지침
+
+### 컴포넌트 패턴
+
+```jsx
+// 공통 레이아웃
+<PageLayout title="..." showBack={false}>
+  {/* 콘텐츠 */}
+</PageLayout>
+```
+
 - 컴포넌트: `PascalCase.jsx`
 - 커스텀 훅: `useCamelCase.js`
+- 컴포넌트 300줄 초과 → 커스텀 훅으로 로직 분리
+- 함수/컴포넌트 로직 50줄 초과 → 커스텀 훅 추출
 
-**Design System**
-- Z-Index: Map(0) < UI/Floating(50) < Modal(1000)
+### Zustand 사용 규칙
 
-**GIS**
-- 지도 인스턴스는 Zustand 또는 ref로 싱글톤 관리.
-- 레이어에 ID를 부여해 중복 렌더링 방지.
+```js
+// ✅ 개별 selector로 구독 (불필요한 리렌더링 방지)
+const user = useAuthStore(s => s.user)
 
-## ✅ Do
-- **Mobile First**: 모든 UI는 `sm:(640px)` 이하 기준으로 먼저 설계.
-- **API 호출**: 반드시 `try-catch`와 로딩 상태 처리 포함.
-- **MCP Host**: AI 에이전트의 지도 제어(Move, Zoom) 인터페이스 노출.
-- 함수/컴포넌트 로직이 50줄을 초과하면 커스텀 훅으로 분리.
-- 모든 폰트는 Open Sans로 통일
+// ❌ 전체 구독 금지
+const store = useAuthStore()
+```
 
-## ❌ Don't
-- API 키와 엔드포인트는 `.env` 외부로 노출 금지.
-- 컴포넌트 300줄 초과 금지 — 커스텀 훅으로 로직 분리.
-- `px` 단위 하드코딩 금지 (Tailwind 수치 활용).
-- 데스크톱 전용 라이브러리 추가 금지 (모바일 성능 우선).
+### API 호출 규칙
+
+```js
+// 반드시 apiClient + try-catch + 로딩 상태 처리
+import { apiClient } from '../api/apiClient.js'
+
+const [loading, setLoading] = useState(false)
+try {
+  setLoading(true)
+  const res = await apiClient('/endpoint')
+  if (!res.ok) throw new Error(res.status)
+  const { data } = await res.json()  // ApiResponse<T> 래퍼 언팩
+  ...
+} catch (e) {
+  ...
+} finally {
+  setLoading(false)
+}
+```
+
+- 백엔드 도메인 API는 `apiClient` 또는 전용 API 모듈을 사용한다. 예외: `/auth/refresh`, `/auth/kakao`, `/auth/logout`, `multipart/form-data` 이미지 업로드, 외부 기상/위치 API
+- 응답은 항상 `ApiResponse<T>` 래퍼: `{ status, data, message }` 구조
+
+### 디자인 시스템
+
+**색상**
+```
+primary:     #1b6d24   (녹색)
+primary-dim: #076019   (진한 녹색)
+surface:     #f8f9fa
+on-surface:  #2b3437
+```
+
+**폰트**: Open Sans (기본) · Manrope (headline) · Public Sans (body)
+
+**Z-Index 계층** (tailwind.config.js에 등록된 값만 사용)
+
+| 클래스 | 값 | 용도 |
+|--------|----|------|
+| z-map | 0 | MapView |
+| z-marker | 30 | 마커 오버레이 |
+| z-canvas | 35 | WeatherCanvas |
+| z-ui | 50 | 검색·필터·날씨위젯·FAB |
+| z-modal | 1000 | 모달·바텀시트 |
+
+### ImageUploader
+
+`src/components/ImageUploader.jsx` — 이미지 업로드 공통 컴포넌트.
+
+```jsx
+// 사용 패턴: 이미지 URL을 부모 상태로 관리
+const [imageUrl, setImageUrl] = useState(null)
+<ImageUploader domain="diet" onChange={setImageUrl} aspectRatio="4/3" />
+```
+
+- `domain`: 백엔드 `POST /images/upload?domain=xxx` 파라미터 — `'diet' | 'posts' | 'reports'` 등
+- `onChange(url | null)`: 업로드 완료 시 URL 전달, ✕ 버튼으로 제거 시 null 전달
+- `aspectRatio`: CSS aspect-ratio 문자열 (기본 `'4/3'`)
+- 파일 선택 즉시 ObjectURL 미리보기 → 업로드 완료 후 실제 서버 URL로 교체
+- 업로드 실패 시 미리보기 제거 + 에러 메시지 표시
+- 업로드 API: `src/api/imageApi.js`의 `uploadImage(file, domain)` — Content-Type 직접 지정 금지 (FormData 자동 처리)
+
+### NutritionCell
+
+`src/components/NutritionCell.jsx` — 탄단지 영양소 표시 공통 셀.
+
+- 기본 패딩: `px-1 py-0.5` (모바일 마커 내부에 맞게 최소화)
+- 레이블: `text-[9px]`, 수치: `text-[11px]` — 글씨 크기는 변경하지 말 것
+- `className` prop으로 패딩 override 가능 (StoreCard: `className="flex-1 py-1"`)
+- 배경: `bg-surface-container-low rounded-[2px]`
+
+### Button variant
+
+```
+gradient        기본 CTA
+filter          필터 비활성
+filter-active   필터 활성
+icon            아이콘 버튼
+sheet-cancel    바텀시트 취소
+sheet-confirm   바텀시트 확인
+```
+
+### DO / DON'T
+
+```
+✅ DO
+- 모바일 퍼스트: sm(640px) 이하 기준으로 먼저 설계
+- h-dvh 사용 (모바일 주소창 대응)
+- 모달/바텀시트는 overflow-hidden 부모 바깥, fixed 포지션
+- 인증 필요 API는 반드시 apiClient() 사용 (JWT 헤더 자동 주입)
+
+❌ DON'T
+- API 키를 컴포넌트 코드에 하드코딩 금지 (.env 에서만)
+- px 단위 하드코딩 금지 (Tailwind 수치 활용)
+- z-[임의값] 직접 사용 금지 (tailwind.config.js 등록 후 사용)
+- 데스크톱 전용 라이브러리 추가 금지 (모바일 성능 우선)
+- 인증 필요 JSON API에 직접 fetch 사용 금지 — apiClient 사용
+```
+
+---
+
+## 3. 메모리 / 참조
+
+### 개발 명령어
+
+```bash
+npm run dev      # Vite 개발 서버 (port 5173)
+npm run build    # 프로덕션 빌드
+npm run preview  # 빌드 결과 미리보기
+```
+
+### Zustand Store 목록
+
+| Store | 주요 상태 |
+|-------|-----------|
+| useAuthStore | user, jwtAccessToken(메모리), jwtRefreshToken(persist), isGuest, isLoading |
+| useDietStore | meals[] |
+| useMapStore | mapInstance, center, zoom, latLon, weather, temperature, forecast |
+| useExerciseStore | exercises[] |
+
+**useAuthStore persist 전략**
+- `jwtRefreshToken` + `user` → localStorage (`auth-storage` 키)
+- `jwtAccessToken` → 메모리만 (페이지 새로고침 시 초기화 → AuthGuard가 refresh 호출로 복원)
+
+### 기상청 API 프록시
+
+`vite.config.js`에 설정됨:
+```
+/api/kma → https://apis.data.go.kr
+```
+
+### 매장 UI 데이터 구조 (storeApi.js normalizer 출력)
+
+```js
+// GET /stores/search → normalizeMarker()
+// 백엔드 응답 markerMacro.nutritionGrade → grade, 수치 기반 태그 파생
+{ id, name, category, lat, lon, grade, tags: string[], nutrition: { carbs, protein, fat } }
+// grade: 'GREEN' | 'YELLOW' | 'RED' | null  // null = 메뉴 정보 미등록 (회색 마커)
+// tags: ['고단백', '저탄수', '저지방'] — 프론트 파생 (protein≥25→고단백, carbs≤40→저탄수, fat≤10→저지방)
+
+// GET /stores/{id} + /menus → normalizeStoreDetail()
+{ id, name, category, address, lat, lon, image, grade, tags, nutrition, menus: MenuItem[] }
+// image는 stores.imageUrl 우선, 없으면 brand.logoUrl 폴백
+// MenuItem: {
+//   id, name, description, price, imageUrl,
+//   grade: 'GREEN' | 'YELLOW' | 'RED' | null,  // nutritionGrade
+//   tags: string[],                              // nutritionTags
+//   nutrition: { carbs: '45g', protein: '20g', fat: '10g' },  // 표시용 문자열
+//   raw:       { carbs: 45,    protein: 20,    fat: 10    },   // 정렬용 숫자
+// }
+```
+
+### 기록 API 함수 (recordApi.js)
+
+```js
+fetchDietLogs(date)                // GET /diet-logs?date=yyyy-MM-dd
+createDietLog(payload)             // POST /diet-logs
+deleteDietLog(logId)               // DELETE /diet-logs/{logId}
+
+fetchExerciseTypes()               // GET /exercise-types
+fetchExerciseLogs(date)            // GET /exercise-logs?date=yyyy-MM-dd
+createExerciseLog(payload)         // POST /exercise-logs — caloriesBurned는 보내지 않음, 서버 계산값 사용
+deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
+```
+
+---
+
+## 4. 워크플로우
+
+### 새 기능 추가 순서
+
+```
+1. features/{domain}/ 폴더 생성
+2. {Domain}Page.jsx — PageLayout 사용
+3. use{Domain}.js — 비즈니스 로직 분리
+4. App.jsx에 라우트 추가
+5. BottomNavBar에 탭 추가 (필요시)
+```
+
+### 미구현 — 다음 작업
+
+```
+✅ 맵 백엔드 API 연동 (GET /stores/search + /stores/{id} + /menus)
+✅ 카카오 OAuth → 백엔드 JWT 교환 (Authorization Code Flow)
+✅ 식단/운동 기록 탭 → DietLog / ExerciseLog API 연동
+✅ 이미지 업로드 연동 (제보하기·식단기록·커뮤니티 글 작성)
+✅ 커뮤니티 게시글 POST /posts 제출 연동 (PostCreatePage)
+✅ 커뮤니티 게시글 목록/상세 GET /posts 연동
+✅ 커뮤니티 좋아요 상태/토글 연동 (비로그인 클릭 시 AuthRequiredModal)
+✅ 사용자 프로필 조회 GET /users/me 연동 (AuthGuard 로그인 후 자동 로드)
+□ 사용자 프로필 수정 UI → PUT /users/me 연동
+□ 챗봇 실제 AI/API 연동 (현재 로컬 메시지 입력 UI만 있음)
+```

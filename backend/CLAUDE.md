@@ -1,196 +1,278 @@
-# TDJMap — Claude 컨텍스트
+# TDJMap — Backend
 
-## 프로젝트 개요
-인천 지역 토스트·샌드위치·샐러드 브랜드 메뉴의 영양성분 정보를 제공하는 Spring Boot 기반 웹 서비스.
+## 1. 시스템 컨텍스트
 
-## 기술 스택
-- **Spring Boot 4.0.5** (Java 17)
-- **Spring Security**
-- **Spring Data JPA** (Hibernate)
-- **PostgreSQL** (localhost:5432, DB: postgres, schema: tdj)
-- **Lombok**
-- **Jsoup 1.18.3** (웹 크롤링)
-- **Build**: Gradle
+**역할**: 영양정보 + 매장 위치 REST API 서버  
+**스택**: Spring Boot 4.0.5 · Java 17 · Spring Data JPA · PostgreSQL 17 · Lombok · Jsoup 1.18.3 · jjwt 0.12.6
 
-## DB 접속 정보
-```
-host:     localhost:5432
-database: postgres
-schema:   tdj
-user:     postgres
-password: 0218
-```
-
-## DB 스키마 (tdj)
-
-### tdj.brands
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| brand_id | bigint (PK, auto) | |
-| brand_name | varchar(255) | 업체명 |
-| logo_url | varchar(255) | |
-
-### tdj.menus
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| menu_id | bigint (PK, auto) | |
-| brand_id | bigint (FK → brands, nullable) | null이면 is_standard=true 필수 |
-| store_id | bigint (FK → stores, nullable) | |
-| menu_name | varchar(255) NOT NULL | 식품명 |
-| kcal | bigint | 에너지(kcal) |
-| carbs | bigint | 탄수화물(g) |
-| protein | bigint | 단백질(g) |
-| fat | bigint | 지방(g) |
-| sugar | bigint | 당류(g) |
-| menu_url | varchar(255) | |
-| is_standard | boolean (default false) | 공공 표준 데이터 여부 |
-| nutrition_info | jsonb (generated) | `tdj.analyze_nutrition(carbs,protein,fat)` 자동 생성 |
-
-**CHECK**: `brand_id IS NOT NULL OR is_standard = true`
-
-`nutrition_info` 반환 구조: `{"grade": "GREEN"/"YELLOW"/"RED", "tags": ["고단백", ...]}`
-- GREEN: 탄수화물 35–55%, 단백질 ≥30%, 지방 <25%
-- RED: 탄수화물 ≥65% OR 지방 ≥35% OR 단백질 <10%
-- 태그: 고탄수(탄수≥60%), 저탄수(탄수<20%), 고단백(단백≥40%), 고지방(지방≥35%)
-
-### tdj.stores
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| store_id | bigint (PK, auto) | |
-| brand_id | bigint (FK → brands) | |
-| store_name | varchar(255) | |
-| address | varchar(255) | |
-| longitude | numeric(11,7) NOT NULL | WGS84 |
-| latitude | numeric(10,7) NOT NULL | WGS84 |
-| category | varchar(255) | |
-| created_at | timestamp | CURRENT_TIMESTAMP |
-
-인덱스: `idx_stores_location (latitude, longitude)`
-
-### tdj.users
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| user_id | bigint (PK, auto) | |
-| email | varchar(255) | |
-| nickname | varchar(255) | |
-| height | bigint | cm |
-| weight | bigint | kg |
-| gender | varchar(10) | |
-| created_at | timestamp | |
-
-### tdj.social_logins
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| social_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| provider | varchar(20) NOT NULL | 소셜 제공자 (kakao 등) |
-| provider_id | varchar(255) NOT NULL | |
-| refresh_token | text | |
-| profile_data | jsonb NOT NULL | |
-| created_at | timestamp | |
-
-### tdj.diet_logs
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| log_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| menu_id | bigint (FK → menus, nullable) | |
-| store_id | bigint (FK → stores, nullable) | |
-| log_kcal | bigint | |
-| log_carbs | bigint | |
-| log_protein | bigint | |
-| log_fat | bigint | |
-| log_sugar | bigint | |
-| img_url | varchar(255) | |
-| meal_type | varchar(20) | 아침/점심/저녁/간식 등 |
-| ate_at | timestamp NOT NULL | |
-
-### tdj.exercise_types
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| type_id | bigint (PK, auto) | |
-| type_name | varchar(255) NOT NULL | |
-| met_value | numeric(4,2) NOT NULL | MET 계수 |
-| icon_url | varchar(255) | |
-
-### tdj.exercise_logs
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| exercise_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| type_id | bigint (FK → exercise_types) NOT NULL | |
-| title | varchar(255) | |
-| duration_min | bigint NOT NULL | 운동 시간(분) |
-| calories_burned | bigint NOT NULL | |
-| memo | text | |
-| created_at | timestamp | |
-
-### tdj.reviews
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| review_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| store_id | bigint (FK → stores) NOT NULL | |
-| star | smallint NOT NULL | 1–5 (CHECK) |
-| content | text | |
-| created_at | timestamp | |
-
-### tdj.posts
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| post_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| post_type | varchar(50) | |
-| title | varchar(255) | |
-| content | text | |
-| created_at | timestamp | |
-
-### tdj.reports (메뉴 오류 제보)
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| report_id | bigint (PK, auto) | |
-| user_id | bigint (FK → users) NOT NULL | |
-| brand_id | bigint (FK → brands, nullable) | |
-| menu_name | varchar(255) NOT NULL | |
-| kcal / carbs / protein / fat / sugar | bigint | 제보 영양정보 |
-| status | varchar(20) NOT NULL | default 'PENDING' |
-| created_at | timestamp | |
-
-## 현재 DB 데이터 상태
-- **brands**: 53개 (인천 지역 토스트·샌드위치·샐러드 브랜드)
-- **menus**: 503건 (fatsecret.kr 크롤링)
-  - 샐러디아 186, 포케올데이 89, 슬로우캘리 66, 샐러드박스 50, 써브웨이 48,
-    이삭토스트 36, 에그드랍 19, 도스마스 5, 투고샐러드 2, 아메리칸트레이 1, 킹토스트 1
-  - 42개 브랜드는 fatsecret.kr 미등록으로 0건
-- **stores**: 174개 (PostGIS ST_Transform EPSG:5179→4326 변환, tn_poi_category에서 삽입)
-
-## 파일 구조
+### 패키지 구조
 
 ```
-src/main/java/com/example/tdjmap/
-├── TdjMapApplication.java
-├── collector/
-│   └── FatSecretKrCrawler.java     ← fatsecret.kr 웹 크롤러 (Jsoup, JDBC)
-│                                      ./gradlew crawlFatSecret [-Pbrand=브랜드명]
-├── entity/
-│   ├── Brand.java
-│   └── Menu.java
-└── repository/
-    ├── BrandRepository.java
-    └── MenuRepository.java
+tdjmap/
+├── common/
+│   ├── ApiResponse.java                  전역 응답 래퍼 (status, data, message)
+│   ├── image/
+│   │   ├── ImageService.java             이미지 업로드/삭제 (UUID 파일명, uploads/ 저장)
+│   │   ├── ImageController.java          POST /images/upload
+│   │   └── ImageUploadResponse.java      { imageUrl: String }
+│   └── exception/
+│       ├── ErrorCode.java                에러 코드 Enum (AUTH_INVALID_TOKEN 등 포함)
+│       ├── BusinessException.java
+│       └── GlobalExceptionHandler.java
+├── config/
+│   ├── JwtUtil.java                     JWT 생성/검증/파싱 (jjwt 0.12.6)
+│   ├── JwtFilter.java                   OncePerRequestFilter — Bearer 토큰 → SecurityContext
+│   ├── SecurityUtil.java                SecurityUtil.getCurrentUserId() — 서비스 레이어 유틸
+│   ├── SecurityConfig.java              STATELESS + JwtFilter, /auth/** 및 GET /stores/**, GET /posts, GET /images/** 공개
+│   ├── WebMvcConfig.java                /images/** → file:uploads/ 정적 서빙
+│   └── AppConfig.java                   RestClient 빈 등록
+├── auth/
+│   ├── controller/AuthController.java   POST /auth/kakao, POST /auth/refresh, DELETE /auth/logout
+│   ├── service/AuthService.java         카카오 Authorization Code 교환 → JWT 발급
+│   └── dto/  KakaoLoginRequest  TokenResponse  TokenRefreshRequest
+├── entity/                              Brand Menu Post PostLike Review Store User
+│                                        DietLog ExerciseLog ExerciseType Report SocialLogin
+├── repository/                          JpaRepository 확장 + StoreQueryRepository (Native SQL)
+│                                        SocialLoginRepository.findByUser_IdAndProvider()
+├── store/
+│   ├── controller/StoreController.java
+│   ├── service/StoreService.java
+│   └── dto/  StoreSearchRequest StoreMarkerResponse StoreDetailResponse
+│             MenuResponse ReviewResponse ReviewCreateRequest MarkerMacroDto
+├── community/
+│   ├── controller/PostController.java
+│   ├── service/PostService.java
+│   └── dto/  PostCreateRequest PostResponse PostLikeResponse
+├── record/
+│   ├── controller/RecordController.java
+│   ├── service/DietRecordService.java
+│   ├── service/ExerciseRecordService.java
+│   └── dto/  DietLogCreateRequest DietLogResponse
+│             ExerciseLogCreateRequest ExerciseLogResponse ExerciseTypeResponse
+├── report/
+│   ├── controller/ReportController.java
+│   ├── service/ReportService.java
+│   └── dto/  ReportCreateRequest ReportAdminResponse
+└── collector/
+    └── FatSecretKrCrawler.java          fatsecret.kr Jsoup 크롤러
 ```
 
-## Gradle 태스크
+### DB 접속
+
+```
+host:     127.0.0.1:15432
+database: tandanji
+schema:   tandanji
+user:     tandanji
+password: tandanji
+```
+
+### 현재 구현된 API
+
+```
+[공개]
+POST /auth/kakao             카카오 code + redirectUri → JWT 발급
+POST /auth/refresh           refreshToken → 새 JWT 발급
+DELETE /auth/logout          Authorization: Bearer — refreshToken 무효화
+
+GET  /stores/search          지도 bbox + 필터로 마커 목록
+GET  /stores/{id}            매장 상세 (브랜드 포함)
+GET  /stores/{id}/menus      매장 전용 메뉴 + 브랜드 공통 메뉴 목록 (nutrition_info 등급/태그 포함)
+GET  /stores/{id}/reviews    리뷰 목록 (최신순)
+
+GET  /posts                  게시글 목록  ?postType=&page=0&size=20
+GET  /posts/{id}             게시글 상세
+
+GET  /images/**              업로드된 이미지 파일 서빙 (인증 불필요)
+
+[인증 필요 — Authorization: Bearer <jwt>]
+POST /images/upload          이미지 업로드  ?domain=stores|brands|menus|posts|diet|users|reviews|reports
+                             → { imageUrl: "http://localhost:8080/images/{domain}/{uuid}.ext" }
+
+POST /stores/{id}/reviews    리뷰 작성  { star, content }
+POST /posts                  게시글 작성  { postType, title, content, imageUrl? }
+DELETE /posts/{id}           게시글 삭제 (작성자 본인만 — 403 otherwise)
+GET  /posts/{id}/likes       좋아요 수 + 내 좋아요 여부
+POST /posts/{id}/likes       좋아요 토글  {}
+
+GET  /diet-logs              날짜별 식단 조회  ?date=yyyy-MM-dd
+POST /diet-logs              식단 기록 저장  { foodName, mealType, logKcal, logCarbs, logProtein, logFat, logSugar, imgUrl?, ateAt }
+DELETE /diet-logs/{logId}    식단 기록 삭제 (본인만 — 403 otherwise)
+
+GET  /exercise-types         운동 종목 목록
+GET  /exercise-logs          날짜별 운동 조회  ?date=yyyy-MM-dd
+POST /exercise-logs          운동 기록 저장  { typeId, title?, durationMin, memo? }
+                             caloriesBurned는 서버가 MET × 사용자 체중 × 운동 시간으로 계산
+DELETE /exercise-logs/{id}   운동 기록 삭제 (본인만)
+
+GET  /users/me               내 프로필 조회
+PUT  /users/me               프로필 수정  { nickname?, height?, weight?, gender? }
+
+POST /reports                영양정보 오류 신고  { storeName, menuName, carbs?, protein?, fat?, imageUrl? }
+GET  /admin/reports          신고 목록 (ADMIN role 필요)
+PATCH /admin/reports/{id}/status  신고 처리 상태 변경  { status: APPROVED|REJECTED }
+```
+
+---
+
+## 2. 행동 지침
+
+### 레이어 패턴 (반드시 준수)
+
+```
+Controller → Service → Repository
+```
+
+- Service: 클래스에 `@Transactional(readOnly = true)`, 쓰기 메서드만 `@Transactional`
+- 기록 도메인은 식단/운동 책임을 `DietRecordService`, `ExerciseRecordService`로 분리한다. 컨트롤러만 `RecordController` 하나로 묶는다.
+- DI: `@RequiredArgsConstructor` + `final` 필드
+- 응답: 항상 `ResponseEntity<ApiResponse<T>>`
+- 예외: `throw new BusinessException(ErrorCode.XXX)` — 직접 RuntimeException 사용 금지
+
+### Entity 패턴
+
+```java
+@Entity @Table(name = "...", schema = "tandanji")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+```
+
+- 연관관계: 모두 `FetchType.LAZY`
+- 생성 시각: `LocalDateTime createdAt`
+
+### DTO 패턴
+
+```java
+// Response
+@Getter @Builder @JsonInclude(JsonInclude.Include.NON_NULL)
+
+// Request
+@Getter @NoArgsConstructor  // + @NotNull @Min @Max @Size 등 validation
+```
+
+### ErrorCode 등록
+
+`common/exception/ErrorCode.java`에 도메인 섹션별로 추가:
+
+```java
+// Community
+POST_NOT_FOUND(404, "게시글을 찾을 수 없습니다."),
+```
+
+### DO / DON'T
+
+```
+✅ DO
+- 복잡한 쿼리는 StoreQueryRepository처럼 별도 QueryRepository 분리
+- 내부 헬퍼는 private findXxxOrThrow() 패턴으로 통일
+- 인증 필요 API에서 userId는 SecurityUtil.getCurrentUserId() 로만 추출
+- PostgreSQL jsonb 컬럼에 매핑하는 String 필드에는 @JdbcTypeCode(SqlTypes.JSON) 추가
+
+❌ DON'T
+- ddl-auto를 validate/update/create로 변경 금지 — 스키마는 직접 SQL 실행
+- Entity에 비즈니스 로직 작성 금지
+- 새 도메인을 루트 패키지에 직접 생성 금지 — 반드시 feature 패키지 하위
+- userId를 요청 파라미터/바디로 수신 금지 — JWT에서 추출
+```
+
+---
+
+## 3. 메모리 / 참조
+
+### Gradle 태스크
+
 ```bash
-./gradlew crawlFatSecret              # 전체 브랜드 크롤링
-./gradlew crawlFatSecret -Pbrand=이삭토스트  # 특정 브랜드만
-./gradlew bootRun                     # 서버 실행 (port 8080)
+./gradlew bootRun                            # 서버 실행 (port 8080)
+./gradlew compileJava                        # 컴파일 검증
+./gradlew crawlFatSecret                     # 전체 브랜드 크롤링
+./gradlew crawlFatSecret -Pbrand=이삭토스트   # 특정 브랜드
 ```
 
-## 주요 결정 사항
-- `ddl-auto=none` — 스키마는 수동 관리
-- FatSecret API 방식 폐기 → fatsecret.kr 직접 크롤링으로 전환
-- DB 행 삭제 시 반드시 시퀀스도 초기화 (memory 참고)
+### psql 실행 (Windows)
 
-## 로컬 데이터 파일 (git 미포함)
-- `incheon_brands.csv` — 인천 브랜드 목록 (크롤러 입력)
+```bash
+PGPASSWORD=tandanji psql -h 127.0.0.1 -p 15432 -U tandanji -d tandanji
+```
+
+### 이미지 저장 구조
+
+```
+backend/uploads/            ← 런타임 저장소 (.gitignore)
+├── stores/                 ← 매장 대표 이미지  (stores.image_url)
+├── brands/                 ← 브랜드 로고       (brands.logo_url)
+├── menus/                  ← 메뉴 이미지       (menus.menu_url)
+├── posts/                  ← 게시글 첨부       (posts.image_url)
+├── diet/                   ← 식단 사진         (diet_logs.img_url)
+├── reports/                ← 제보 첨부 이미지  (reports.image_url)
+├── users/                  ← 프로필 사진       (users.profile_url — 컬럼 추가 예정)
+└── reviews/                ← 리뷰 첨부         (reviews.image_url — 컬럼 추가 예정)
+```
+
+현재 이미지 URL 컬럼: `stores.image_url`, `posts.image_url`, `reports.image_url`.
+
+- URL 패턴: `http://localhost:8080/images/{domain}/{uuid}.ext`
+- 파일명: UUID 자동 생성 — 충돌 없음, 경로 추측 불가
+- 허용 타입: image/jpeg, image/png, image/webp, image/gif
+- 최대 크기: 10MB / 요청당 30MB
+- 업로드: `POST /images/upload?domain=xxx` (인증 필요)
+
+### DB 스키마 현황
+
+| 테이블 | 데이터 | 비고 |
+|--------|--------|------|
+| brands | 53건 | 인천 토스트·샌드위치·샐러드 |
+| menus | 503건 | fatsecret.kr 크롤링 |
+| stores | 174건 | PostGIS EPSG:5179→4326 변환 |
+| post_likes | — | UNIQUE(post_id, user_id) |
+
+### 주요 테이블 상세
+
+**menus**: `nutrition_info` JSONB (자동 생성)
+```json
+{ "grade": "GREEN|YELLOW|RED", "tags": ["고단백", "저탄수"] }
+```
+- GREEN: 탄수 35–55%, 단백 ≥30%, 지방 <25%
+- RED: 탄수 ≥65% OR 지방 ≥35% OR 단백 <10%
+- 태그: 고탄수(≥60%) 저탄수(<20%) 고단백(≥40%) 고지방(≥35%)
+
+**menus CHECK**: `brand_id IS NOT NULL OR is_standard = true`
+
+**메뉴 조회/마커 매크로 규칙**:
+- `GET /stores/{id}/menus`: 해당 `store_id` 전용 메뉴 + 같은 브랜드의 공통 메뉴(`store_id IS NULL`)를 함께 반환
+- `GET /stores/search`: `StoreQueryRepository`의 LATERAL 쿼리로 매장 전용 메뉴를 브랜드 공통 메뉴보다 우선하여 대표 매크로를 선택
+- 영양 필터(`min_protein`, `max_carbs`, `max_fat`, `max_sugar`)가 있으면 조건을 만족하는 메뉴가 없는 매장은 제외
+
+**stores/posts 이미지**:
+- `stores.image_url VARCHAR(500)` — 매장 대표 이미지, 상세 API `imageUrl`
+- `posts.image_url VARCHAR(500)` — 커뮤니티 첨부 이미지
+- `post_likes` — `UNIQUE(post_id, user_id)`로 중복 좋아요 방지
+
+### 로컬 데이터 파일 (git 미포함)
+
+- `incheon_brands.csv` — 크롤러 입력 브랜드 목록
+
+---
+
+## 4. 워크플로우
+
+### 새 도메인 기능 추가 순서
+
+```
+1. psql로 테이블 생성 SQL 직접 실행
+2. entity/ 에 Entity 추가
+3. repository/ 에 Repository 추가
+4. {domain}/controller, {domain}/service, {domain}/dto 패키지 생성
+5. common/exception/ErrorCode.java 에 에러 코드 추가
+6. ./gradlew compileJava 로 검증
+```
+
+### 미구현
+
+현재 없음.
+
+### 주요 결정 사항
+
+- FatSecret API 방식 폐기 → fatsecret.kr 직접 크롤링으로 전환
+- DB 행 삭제 시 반드시 시퀀스도 초기화
+- 카카오 인증: Implicit Flow(팝업) 폐기 → Authorization Code Flow 채택 (백엔드가 REST API 키로 토큰 교환)
+- JWT: access token 1시간(메모리), refresh token 30일(DB + 프론트 localStorage)
+- SocialLogin.profileData (jsonb): Hibernate 6에서 `@JdbcTypeCode(SqlTypes.JSON)` 필수 — 없으면 varchar→jsonb 캐스트 오류 발생
