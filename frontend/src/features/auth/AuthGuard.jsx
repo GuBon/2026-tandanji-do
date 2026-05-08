@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import { useKakaoLogin } from './useKakaoLogin'
 import { fetchMe } from '../../api/userApi.js'
@@ -6,6 +7,7 @@ import { fetchMe } from '../../api/userApi.js'
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
 export default function AuthGuard({ children }) {
+  const location = useLocation()
   const user = useAuthStore((s) => s.user)
   const isGuest = useAuthStore((s) => s.isGuest)
   const isLoading = useAuthStore((s) => s.isLoading)
@@ -17,11 +19,13 @@ export default function AuthGuard({ children }) {
   const updateUser = useAuthStore((s) => s.updateUser)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const { login, browseAsGuest } = useKakaoLogin()
+  const [refreshing, setRefreshing] = useState(false)
 
   // 새로고침 후 메모리에서 사라진 accessToken을 복원 — 로그인 화면 노출 방지
   useEffect(() => {
     if (!jwtRefreshToken || jwtAccessToken) return
 
+    setRefreshing(true)
     fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,7 +37,8 @@ export default function AuthGuard({ children }) {
       })
       .then(({ data }) => setAccessToken(data.accessToken))
       .catch(() => clearAuth())
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      .finally(() => setRefreshing(false))
+  }, [jwtRefreshToken, jwtAccessToken, setAccessToken, clearAuth])
 
   // 로그인 상태에서 전체 프로필(height, weight 등) 로드
   useEffect(() => {
@@ -41,8 +46,31 @@ export default function AuthGuard({ children }) {
 
     fetchMe()
       .then((profile) => updateUser(profile))
-      .catch(() => {})
+      .catch(() => updateUser({}))
   }, [jwtAccessToken, profileLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const waitingForAccessToken = user && jwtRefreshToken && !jwtAccessToken && !isGuest
+  const waitingForProfile = user && jwtAccessToken && !isGuest && !profileLoaded
+  const needsBodyProfile = user && !isGuest && profileLoaded && (user.height == null || user.weight == null)
+  const onBodyProfilePage = location.pathname === '/profile/body'
+
+  if (waitingForAccessToken || refreshing || waitingForProfile) {
+    return (
+      <div className="w-full h-dvh flex items-center justify-center bg-[#F8F9FA]">
+        <span className="text-sm text-gray-400">로그인 상태를 확인하는 중...</span>
+      </div>
+    )
+  }
+
+  if (needsBodyProfile && !onBodyProfilePage) {
+    return (
+      <Navigate
+        to="/profile/body"
+        replace
+        state={{ required: true, from: location.pathname }}
+      />
+    )
+  }
 
   if (user || isGuest) return children
 
