@@ -12,12 +12,5 @@ public class StoreSearchRequest {
     private final Double neLat;
     private final Double neLng;
     private final String category;
-    private final Integer minProtein;
-    private final Integer maxCarbs;
-    private final Integer maxFat;
-    private final Integer maxSugar;
-
-    public boolean hasNutritionFilter() {
-        return minProtein != null || maxCarbs != null || maxFat != null || maxSugar != null;
-    }
+    private final String keyword;
 }

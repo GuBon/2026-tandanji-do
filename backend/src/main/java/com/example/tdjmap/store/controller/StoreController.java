@@ -28,13 +28,10 @@ public class StoreController {
             @RequestParam("ne_lat") Double neLat,
             @RequestParam("ne_lng") Double neLng,
             @RequestParam(value = "category",    required = false) String category,
-            @RequestParam(value = "min_protein", required = false) Integer minProtein,
-            @RequestParam(value = "max_carbs",   required = false) Integer maxCarbs,
-            @RequestParam(value = "max_fat",     required = false) Integer maxFat,
-            @RequestParam(value = "max_sugar",   required = false) Integer maxSugar
+            @RequestParam(value = "q",           required = false) String keyword
     ) {
         StoreSearchRequest req = new StoreSearchRequest(
-                swLat, swLng, neLat, neLng, category, minProtein, maxCarbs, maxFat, maxSugar);
+                swLat, swLng, neLat, neLng, category, keyword);
         return ResponseEntity.ok(ApiResponse.ok(storeService.searchStores(req)));
     }
 
