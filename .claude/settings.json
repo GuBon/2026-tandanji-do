@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\admin\\\\Desktop\\\\2026-tandanji-do\\\\2026-tandanji-do\\\\frontend\\\\src\\\\features\\\\map\" -Recurse)"
+    ]
+  }
+}
