@@ -37,6 +37,7 @@ export function useExercise() {
   const { exercises, addExercise, setExercises, removeExercise } = useExerciseStore()
   const [exerciseTypes, setExerciseTypes] = useState([])
   const [loading, setLoading] = useState(false)
+  const [typesLoading, setTypesLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const today = new Date()
@@ -55,6 +56,7 @@ export function useExercise() {
   }, [])
 
   const loadExerciseTypes = useCallback(async () => {
+    setTypesLoading(true)
     try {
       const types = await fetchExerciseTypes()
       setExerciseTypes(
@@ -64,7 +66,9 @@ export function useExercise() {
         }))
       )
     } catch {
-      // 실패 시 빈 목록 유지 — ExerciseAddModal이 fallback 처리
+      setExerciseTypes([])
+    } finally {
+      setTypesLoading(false)
     }
   }, [])
 
@@ -73,8 +77,8 @@ export function useExercise() {
     loadExerciseTypes()
   }, [loadTodayLogs, loadExerciseTypes])
 
-  const addExerciseEntry = useCallback(async ({ typeId, durationMin, caloriesBurned, title, memo }) => {
-    const saved = await createExerciseLog({ typeId, durationMin, caloriesBurned, title, memo })
+  const addExerciseEntry = useCallback(async ({ typeId, durationMin, title, memo }) => {
+    const saved = await createExerciseLog({ typeId, durationMin, title, memo })
     addExercise(toStoreShape(saved))
     return saved
   }, [addExercise])
@@ -90,6 +94,7 @@ export function useExercise() {
   return {
     exercises,
     exerciseTypes,
+    typesLoading,
     totalCalories,
     totalMinutes,
     loading,

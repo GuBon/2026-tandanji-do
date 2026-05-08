@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import useDietStore from '../../store/useDietStore.js'
-import { fetchDietLogs, createDietLog, deleteDietLog } from '../../api/recordApi.js'
+import { fetchDietLogs, createDietLog, deleteDietLog, toLocalDateTimeStr } from '../../api/recordApi.js'
 
 function toStoreShape(log) {
   return {
@@ -23,22 +23,25 @@ export function useDiet() {
 
   const today = new Date()
 
-  const loadTodayLogs = useCallback(async () => {
+  const loadTodayLogs = useCallback(async (signal) => {
     setLoading(true)
     setError(null)
     try {
       resetMeals()
       const logs = await fetchDietLogs(today)
+      if (signal?.aborted) return
       logs.forEach((log) => addMeal(toStoreShape(log)))
     } catch (e) {
-      setError(e.message)
+      if (!signal?.aborted) setError(e.message)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadTodayLogs()
+    const ctrl = new AbortController()
+    loadTodayLogs(ctrl.signal)
+    return () => ctrl.abort()
   }, [loadTodayLogs])
 
   const dailyCalories = meals.reduce((s, m) => s + (m.calories || 0), 0)
@@ -54,7 +57,7 @@ export function useDiet() {
         logFat: Number(fat),
         logSugar: 0,
         imgUrl,
-        ateAt: ateAt ?? new Date().toISOString().slice(0, 19),
+        ateAt: ateAt ?? toLocalDateTimeStr(),
       })
       addMeal(toStoreShape(saved))
       return saved
@@ -70,5 +73,5 @@ export function useDiet() {
     [removeMeal],
   )
 
-  return { meals, dailyCalories, addMealEntry, removeMealEntry, loading, refresh: loadTodayLogs }
+  return { meals, dailyCalories, addMealEntry, removeMealEntry, loading, refresh: () => loadTodayLogs() }
 }

@@ -1,6 +1,14 @@
 import { apiClient } from './apiClient.js'
 
-const toDateStr = (date) => date.toISOString().slice(0, 10)
+const pad = (value) => String(value).padStart(2, '0')
+
+export function toDateStr(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+export function toLocalDateTimeStr(date = new Date()) {
+  return `${toDateStr(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
 
 // ── 식단 기록 ──────────────────────────────────────────────────────────────
 
