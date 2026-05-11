@@ -16,6 +16,9 @@ public class ReportAdminResponse {
     private Long userId;
     private String userNickname;
     private String storeName;
+    private String storeAddress;
+    private Double storeLat;
+    private Double storeLon;
     private String menuName;
     private Long carbs;
     private Long protein;
@@ -30,6 +33,9 @@ public class ReportAdminResponse {
                 .userId(r.getUser().getId())
                 .userNickname(r.getUser().getNickname())
                 .storeName(r.getStoreName())
+                .storeAddress(r.getStoreAddress())
+                .storeLat(r.getStoreLat())
+                .storeLon(r.getStoreLon())
                 .menuName(r.getMenuName())
                 .carbs(r.getCarbs())
                 .protein(r.getProtein())
