@@ -16,15 +16,15 @@ const TAGS = [
 ]
 
 const NUTRIENTS = [
-  { key: 'carbs',   label: '탄수화물', sub: 'CARBOHYDRATES', sliderMax: 300, defaultMin: 0,  defaultMax: 150 },
-  { key: 'protein', label: '단백질',   sub: 'PROTEIN',       sliderMax: 300, defaultMin: 20, defaultMax: 80  },
-  { key: 'fat',     label: '지방',     sub: 'FAT',           sliderMax: 150, defaultMin: 0,  defaultMax: 40  },
+  { key: 'carbs',   label: '탄수화물', sub: 'CARBOHYDRATES', sliderMax: 150, defaultMin: 0, defaultMax: 150 },
+  { key: 'protein', label: '단백질',   sub: 'PROTEIN',       sliderMax: 100, defaultMin: 0, defaultMax: 100 },
+  { key: 'fat',     label: '지방',     sub: 'FAT',           sliderMax: 100, defaultMin: 0, defaultMax: 100 },
 ]
 
 const DEFAULTS = {
-  carbs:   { min: 0,  max: 150 },
-  protein: { min: 20, max: 80  },
-  fat:     { min: 0,  max: 40  },
+  carbs:   { min: 0, max: 150 },
+  protein: { min: 0, max: 100 },
+  fat:     { min: 0, max: 100 },
 }
 
 const THUMB =
