@@ -11,6 +11,10 @@ public class ReportCreateRequest {
     @NotBlank
     private String storeName;
 
+    private String storeAddress;
+    private Double storeLat;
+    private Double storeLon;
+
     @NotBlank
     private String menuName;
 
