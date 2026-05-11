@@ -2,6 +2,8 @@ import { useState } from 'react'
 import Button from '../../components/Button.jsx'
 import ImageUploader from '../../components/ImageUploader.jsx'
 import { useReport } from './useReport.js'
+import { useKakaoPlaceSearch } from './useKakaoPlaceSearch.js'
+import useMapStore from '../../store/useMapStore.js'
 
 const CarbsIcon = () => (
   <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -37,8 +39,30 @@ const NUTRITION_ROWS = [
 ]
 
 export default function ReportModal({ onClose }) {
-  const { form, setField, loading, error, submit } = useReport({ onSuccess: onClose })
+  const { form, setField, setPlace, clearPlaceDetails, clearPlace, loading, error, submit } = useReport({ onSuccess: onClose })
+  const latLon = useMapStore(s => s.latLon)
+  const { query, setQuery, results, searching, searchError, clearResults } = useKakaoPlaceSearch(latLon)
   const [imageUrl, setImageUrl] = useState(null)
+
+  const handleStoreInput = (e) => {
+    setField('storeName')(e)
+    clearPlaceDetails()
+    setQuery(e.target.value)
+  }
+
+  const handleSelectPlace = (place) => {
+    setPlace(place)
+    clearResults()
+    setQuery('')
+  }
+
+  const handleClearPlace = () => {
+    clearPlace()
+    clearResults()
+    setQuery('')
+  }
+
+  const showDropdown = !form.storeAddress && (searching || results.length > 0 || !!searchError)
 
   const handleSubmit = async () => {
     await submit(imageUrl)
@@ -58,17 +82,63 @@ export default function ReportModal({ onClose }) {
             </p>
           </div>
 
+          {/* 매장명 검색 */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-gray-800">
               매장명 <span className="font-normal text-gray-400">(STORE NAME)</span>
             </label>
-            <input
-              type="text"
-              placeholder="예: 샐러디 강남점"
-              value={form.storeName}
-              onChange={setField('storeName')}
-              className="w-full h-[58px] px-5 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="매장명으로 검색..."
+                value={form.storeName}
+                onChange={handleStoreInput}
+                className="w-full h-[58px] px-5 pr-12 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
+              />
+              {form.storeName && (
+                <button
+                  type="button"
+                  onClick={handleClearPlace}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-xs leading-none"
+                  aria-label="초기화"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 검색 결과 드롭다운 */}
+            {showDropdown && (
+              <ul className="rounded-2xl border border-gray-100 bg-white shadow-md max-h-[220px] overflow-y-auto">
+                {searching && results.length === 0 && !searchError && (
+                  <li className="px-4 py-3 text-sm text-gray-400">검색 중...</li>
+                )}
+                {searchError && (
+                  <li className="px-4 py-3 text-sm text-red-500">{searchError}</li>
+                )}
+                {results.map((r) => (
+                  <li
+                    key={r.id}
+                    onClick={() => handleSelectPlace(r)}
+                    className="px-4 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer active:bg-gray-50"
+                  >
+                    <div className="text-sm font-medium text-gray-800">{r.placeName}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{r.address}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* 선택된 주소 표시 */}
+            {form.storeAddress && (
+              <div className="flex items-start gap-2 px-4 py-2.5 rounded-xl bg-emerald-50">
+                <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1C4.79 1 3 2.79 3 5c0 3 4 8 4 8s4-5 4-8c0-2.21-1.79-4-4-4z" fill="#10b981" />
+                  <circle cx="7" cy="5" r="1.5" fill="white" />
+                </svg>
+                <span className="text-xs text-emerald-700 leading-relaxed">{form.storeAddress}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
