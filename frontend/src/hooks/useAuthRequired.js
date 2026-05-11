@@ -7,9 +7,10 @@ export function useAuthRequired() {
 
   const requireAuth = (callback) => {
     if (user) {
-      callback()
+      return callback()
     } else {
       setModalOpen(true)
+      return null
     }
   }
 

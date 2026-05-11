@@ -32,12 +32,22 @@ const FlameIcon = () => (
   </svg>
 )
 
+const RatingIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B">
+    <path d="M12 2.8l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.9-5.4 2.9 1-6-4.4-4.3 6.1-.9L12 2.8z" />
+  </svg>
+)
+
 const ChevronIcon = ({ open }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
     className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
     <polyline points="6 9 12 15 18 9" />
   </svg>
 )
+
+function formatRating(rating) {
+  return rating != null ? Number(rating).toFixed(1) : '--'
+}
 
 export const SORT_OPTIONS = [
   { key: 'protein', label: '단백질순' },
@@ -101,6 +111,11 @@ export function StoreInfoSection({ store }) {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <FlameIcon /><span className="text-orange-500 font-medium">{store.kcal}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <RatingIcon />
+          <span className="font-semibold text-amber-500">{formatRating(store.rating)}</span>
+          <span className="text-gray-400">/ 5.0</span>
         </div>
       </div>
 
@@ -232,7 +247,13 @@ function MenuItem({ menu }) {
   )
 }
 
-function ReviewItem({ review }) {
+const HeartIcon = ({ filled }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.8 4.6c-1.6-1.5-4.1-1.4-5.6.2L12 8.1 8.8 4.8C7.3 3.2 4.8 3.1 3.2 4.6c-1.8 1.7-1.9 4.5-.2 6.3l9 9.1 9-9.1c1.7-1.8 1.6-4.6-.2-6.3z" />
+  </svg>
+)
+
+function ReviewItem({ review, onToggleLike }) {
   return (
     <div className="px-5 py-4 border-b border-gray-100 last:border-0">
       <div className="flex items-center justify-between gap-3">
@@ -245,19 +266,109 @@ function ReviewItem({ review }) {
       <p className="mt-2 text-xs text-gray-400">
         {review.createdAt ? new Date(review.createdAt).toLocaleDateString('ko-KR') : ''}
       </p>
+      <button
+        type="button"
+        onClick={() => onToggleLike?.(review.reviewId)}
+        className={`mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors ${
+          review.liked ? 'bg-rose-50 text-rose-500' : 'bg-gray-100 text-gray-500'
+        }`}
+      >
+        <HeartIcon filled={review.liked} />
+        {review.likeCount ?? 0}
+      </button>
     </div>
   )
 }
 
-export function StoreDetailContent({ activeTab, store, reviews, gradeFilter, sortKey }) {
-  if (activeTab === '리뷰') {
-    return reviews.length ? (
-      <div className="flex flex-col">
-        {reviews.map((review) => <ReviewItem key={review.reviewId} review={review} />)}
+function ReviewComposer({ onCreateReview, submitting, error }) {
+  const [star, setStar] = useState(5)
+  const [content, setContent] = useState('')
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (submitting) return
+    const result = onCreateReview?.({ star, content })
+    if (!result) return
+    if (result && typeof result.then === 'function') {
+      const ok = await result
+      if (!ok) return
+    }
+    setStar(5)
+    setContent('')
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="px-5 py-4 border-b border-gray-100 bg-white">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-gray-900">리뷰 작성</p>
+        <div className="flex items-center gap-1" aria-label="별점 선택">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStar(value)}
+              className={`text-xl leading-none transition-colors ${value <= star ? 'text-amber-400' : 'text-gray-200'}`}
+              aria-label={`${value}점`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
       </div>
-    ) : (
-      <div className="h-40 flex items-center justify-center text-sm text-gray-400">
-        아직 리뷰가 없어요
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.target.value.slice(0, 1000))}
+        placeholder="방문 경험을 남겨주세요"
+        className="mt-3 min-h-24 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm leading-6 text-gray-700 outline-none focus:border-emerald-500 focus:bg-white"
+      />
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <span className={`text-xs ${error ? 'text-red-500' : 'text-gray-400'}`}>
+          {error ?? `${content.length}/1000`}
+        </span>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="h-9 px-4 rounded-full bg-primary text-sm font-bold text-white disabled:opacity-50"
+        >
+          {submitting ? '등록 중' : '등록'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function StoreDetailContent({
+  activeTab,
+  store,
+  reviews,
+  gradeFilter,
+  sortKey,
+  onCreateReview,
+  onToggleReviewLike,
+  reviewSubmitting,
+  reviewError,
+}) {
+  if (activeTab === '리뷰') {
+    return (
+      <div className="flex flex-col">
+        <ReviewComposer
+          onCreateReview={onCreateReview}
+          submitting={reviewSubmitting}
+          error={reviewError}
+        />
+        {reviews.length ? (
+          reviews.map((review) => (
+            <ReviewItem
+              key={review.reviewId}
+              review={review}
+              onToggleLike={onToggleReviewLike}
+            />
+          ))
+        ) : (
+          <div className="h-40 flex items-center justify-center text-sm text-gray-400">
+            아직 리뷰가 없어요
+          </div>
+        )}
       </div>
     )
   }

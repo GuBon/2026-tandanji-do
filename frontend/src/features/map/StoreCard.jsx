@@ -20,6 +20,16 @@ const FlameIcon = () => (
   </svg>
 )
 
+const StarIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B">
+    <path d="M12 2.8l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.9-5.4 2.9 1-6-4.4-4.3 6.1-.9L12 2.8z" />
+  </svg>
+)
+
+function formatRating(rating) {
+  return rating != null ? Number(rating).toFixed(1) : '--'
+}
+
 export default function StoreCard({ store, onClose }) {
   const navigate = useNavigate()
 
@@ -56,6 +66,9 @@ export default function StoreCard({ store, onClose }) {
               </span>
               <span className="flex items-center gap-1 text-[11px] text-gray-400">
                 <FlameIcon />{store.kcal ?? '--'}
+              </span>
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+                <StarIcon />{formatRating(store.rating)}
               </span>
             </div>
           </div>

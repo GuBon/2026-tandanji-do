@@ -34,6 +34,9 @@ export default function MapPage() {
   const weather = useMapStore((s) => s.weather)
   const { locate } = useGeolocation()
   const mapInstance = useMapStore((s) => s.mapInstance)
+  const moveTo = useMapStore((s) => s.moveTo)
+  const pendingStore = useMapStore((s) => s.pendingStore)
+  const clearPendingStore = useMapStore((s) => s.clearPendingStore)
   const [mapZoom, setMapZoom] = useState(12)
 
   useEffect(() => {
@@ -60,6 +63,13 @@ export default function MapPage() {
     toggleFilter,
     closeFilter,
   } = useMapUI()
+
+  useEffect(() => {
+    if (!pendingStore || !mapInstance) return
+    moveTo(pendingStore.x, pendingStore.y, 16)
+    selectStore(pendingStore)
+    clearPendingStore()
+  }, [mapInstance, pendingStore])
 
   const storeFilters = useMemo(() => ({
     ...(searchKeyword.trim() ? { keyword: searchKeyword.trim() } : {}),

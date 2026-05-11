@@ -20,6 +20,7 @@ function normalizeMarker(raw) {
     lat:       raw.latitude,
     lon:       raw.longitude,
     category:  raw.category,
+    rating:    raw.rating ?? null,
     grade:     nutritionGrade ?? null,
     tags:      nutritionTags?.length ? nutritionTags : deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
     nutrition: {
@@ -44,6 +45,7 @@ function normalizeStoreDetail(rawDetail, rawMenus) {
     lat:       rawDetail.latitude,
     lon:       rawDetail.longitude,
     image:     rawDetail.imageUrl ?? rawDetail.brand?.logoUrl ?? null,
+    rating:    rawDetail.rating ?? null,
     grade:     null,
     tags:      [],
     nutrition: { carbs: '--', protein: '--', fat: '--' },
@@ -97,4 +99,24 @@ export async function fetchStoreReviews(storeId) {
   if (!res.ok) throw new Error(`fetchStoreReviews ${res.status}`)
   const { data } = await res.json()
   return data ?? []
+}
+
+export async function createStoreReview(storeId, { star, content }) {
+  const res = await apiClient(`/stores/${storeId}/reviews`, {
+    method: 'POST',
+    body: JSON.stringify({
+      star,
+      content: content?.trim() ? content.trim() : null,
+    }),
+  })
+  if (!res.ok) throw new Error(`createStoreReview ${res.status}`)
+  const { data } = await res.json()
+  return data
+}
+
+export async function toggleStoreReviewLike(storeId, reviewId) {
+  const res = await apiClient(`/stores/${storeId}/reviews/${reviewId}/likes`, { method: 'POST' })
+  if (!res.ok) throw new Error(`toggleStoreReviewLike ${res.status}`)
+  const { data } = await res.json()
+  return data
 }

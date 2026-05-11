@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { fetchStoreReviews, fetchStoreWithMenus } from '../../api/storeApi.js'
+import {
+  createStoreReview,
+  fetchStoreReviews,
+  fetchStoreWithMenus,
+  toggleStoreReviewLike,
+} from '../../api/storeApi.js'
 import { useStoreDistance } from './useStoreDistance.js'
 
 export function useStoreDetail(storeId) {
@@ -35,5 +40,21 @@ export function useStoreDetail(storeId) {
   const distances = useStoreDistance(baseStore ? [baseStore] : [])
   const store = baseStore ? { ...baseStore, ...distances[baseStore.id] } : null
 
-  return { store, reviews, loading, error }
+  const submitReview = async ({ star, content }) => {
+    const created = await createStoreReview(Number(storeId), { star, content })
+    setReviews((prev) => [created, ...prev])
+    return created
+  }
+
+  const toggleReviewLike = async (reviewId) => {
+    const next = await toggleStoreReviewLike(Number(storeId), reviewId)
+    setReviews((prev) => prev.map((review) => (
+      review.reviewId === reviewId
+        ? { ...review, liked: next.liked, likeCount: next.likeCount }
+        : review
+    )))
+    return next
+  }
+
+  return { store, reviews, loading, error, submitReview, toggleReviewLike }
 }

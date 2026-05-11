@@ -15,6 +15,8 @@ const useMapStore = create((set) => ({
   setTemperature: (temperature) => set({ temperature }),
   setForecast: (forecast) => set({ forecast }),
 
+  pendingStore: null, // 챗봇에서 선택된 매장 → MapPage에서 소비
+
   moveTo: (x, y, zoom) =>
     set((state) => {
       if (state.mapInstance) {
@@ -22,6 +24,9 @@ const useMapStore = create((set) => ({
       }
       return { center: [x, y], zoom }
     }),
+
+  setPendingStore: (store) => set({ pendingStore: store }),
+  clearPendingStore: () => set({ pendingStore: null }),
 }))
 
 export default useMapStore

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
+import { useAuthRequired } from '../../hooks/useAuthRequired.js'
 import { useStoreDetail } from './useStoreDetail.js'
 import {
   MenuToolbar,
@@ -15,7 +17,10 @@ export default function MapStorePage() {
   const [activeTab, setActiveTab] = useState('메뉴')
   const [gradeFilter, setGradeFilter] = useState(null)
   const [sortKey, setSortKey] = useState('protein')
-  const { store, reviews, loading, error } = useStoreDetail(id)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState(null)
+  const { store, reviews, loading, error, submitReview, toggleReviewLike } = useStoreDetail(id)
+  const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
 
   const handleShare = async () => {
     const url = window.location.href
@@ -24,6 +29,26 @@ export default function MapStorePage() {
       return
     }
     await navigator.clipboard?.writeText(url)
+  }
+
+  const handleCreateReview = ({ star, content }) => {
+    return requireAuth(async () => {
+      try {
+        setReviewSubmitting(true)
+        setReviewError(null)
+        await submitReview({ star, content })
+        return true
+      } catch {
+        setReviewError('리뷰 작성에 실패했습니다.')
+        return false
+      } finally {
+        setReviewSubmitting(false)
+      }
+    })
+  }
+
+  const handleToggleReviewLike = (reviewId) => {
+    return requireAuth(() => toggleReviewLike(reviewId).catch(() => null))
   }
 
   if (loading) {
@@ -68,8 +93,13 @@ export default function MapStorePage() {
           reviews={reviews}
           gradeFilter={gradeFilter}
           sortKey={sortKey}
+          onCreateReview={handleCreateReview}
+          onToggleReviewLike={handleToggleReviewLike}
+          reviewSubmitting={reviewSubmitting}
+          reviewError={reviewError}
         />
       </div>
+      {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )
 }
