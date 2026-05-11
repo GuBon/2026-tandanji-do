@@ -55,6 +55,9 @@ function ReportCard({ report, onApprove, onReject }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex flex-col gap-0.5">
           <span className="text-sm font-bold text-gray-800">{report.storeName ?? '—'}</span>
+          {report.storeAddress && (
+            <span className="text-[11px] text-gray-400 truncate">{report.storeAddress}</span>
+          )}
           <span className="text-xs text-gray-500">{report.menuName}</span>
         </div>
         <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
