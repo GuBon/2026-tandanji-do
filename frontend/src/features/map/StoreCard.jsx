@@ -57,17 +57,17 @@ export default function StoreCard({ store, onClose }) {
               {store.name}
             </button>
             <p className="text-[12px] text-gray-400 truncate">{store.address ?? '주소 정보 없음'}</p>
-            <div className="flex items-center gap-3 mt-0.5">
-              <span className="flex items-center gap-1 text-[11px] text-gray-400">
+            <div className="flex items-center gap-3 mt-0.5 overflow-hidden">
+              <span className="flex items-center gap-1 text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                 <PinIcon />{store.distance ?? '--'}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-gray-400">
+              <span className="flex items-center gap-1 text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                 <ClockIcon />{store.walkTime ?? '--'}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-gray-400">
+              <span className="flex items-center gap-1 text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                 <FlameIcon />{store.kcal ?? '--'}
               </span>
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500 whitespace-nowrap shrink-0">
                 <StarIcon />{formatRating(store.rating)}
               </span>
             </div>
