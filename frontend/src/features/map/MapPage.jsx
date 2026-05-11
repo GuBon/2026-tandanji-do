@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { fromLonLat } from 'ol/proj'
 import MapView from './MapView.jsx'
 import Header from '../../components/Header.jsx'
 import Button from '../../components/Button.jsx'
@@ -19,6 +20,7 @@ import { useStoreDistance } from './useStoreDistance.js'
 import useMapStores from './useMapStores.js'
 import WeatherCanvas from './WeatherCanvas.jsx'
 import { useAuthRequired } from '../../hooks/useAuthRequired.js'
+import { useLocationPixel } from './useLocationPixel.js'
 
 const IS_DEV = import.meta.env.DEV
 const WEATHER_OPTIONS = ['sunny', 'rain', 'snow']
@@ -92,6 +94,14 @@ export default function MapPage() {
 
   const pixelPositions = useMapMarkers(visibleStores)
   const storeDistances = useStoreDistance(stores)
+  const locationPixel = useLocationPixel()
+
+  const handleSearchSelect = (store) => {
+    const [x, y] = fromLonLat([store.lon, store.lat])
+    moveTo(x, y, 16)
+    selectStore(store)
+    setSearchInput('')
+  }
 
   return (
     <div className="flex flex-col w-full h-dvh overflow-hidden bg-gray-100">
@@ -131,11 +141,25 @@ export default function MapPage() {
           )
         })}
 
+        {locationPixel && (
+          <div
+            className="absolute z-marker -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ left: locationPixel.left, top: locationPixel.top }}
+          >
+            <div className="relative">
+              <div className="absolute -inset-1.5 rounded-full bg-blue-400/25 blur-[5px]" />
+              <div className="relative w-5 h-5 rounded-full bg-blue-500 border-2 border-white" />
+            </div>
+          </div>
+        )}
+
         <SearchOverlay
           value={searchInput}
           onChange={setSearchInput}
           onSearch={(keyword = searchInput) => setSearchKeyword(keyword)}
           onFilterClick={toggleFilter}
+          results={searchInput.trim() ? visibleStores.map(s => ({ ...s, ...storeDistances[s.id] })) : []}
+          onSelect={handleSearchSelect}
         />
 
         {/* 날씨 + 챗봇 패널 */}
