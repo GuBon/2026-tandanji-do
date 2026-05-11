@@ -129,7 +129,18 @@ CREATE TABLE reviews (
     FOREIGN KEY (store_id) REFERENCES stores(store_id)
 );
 
--- 10. Community posts
+-- 10. Review likes
+CREATE TABLE review_likes (
+    like_id    BIGSERIAL PRIMARY KEY,
+    review_id  BIGINT NOT NULL,
+    user_id    BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES reviews(review_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT uk_review_likes_review_user UNIQUE (review_id, user_id)
+);
+
+-- 11. Community posts
 CREATE TABLE posts (
     post_id    BIGSERIAL PRIMARY KEY,
     user_id    BIGINT NOT NULL,
@@ -141,7 +152,7 @@ CREATE TABLE posts (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- 11. Post likes
+-- 12. Post likes
 CREATE TABLE post_likes (
     like_id    BIGSERIAL PRIMARY KEY,
     post_id    BIGINT NOT NULL,
@@ -152,7 +163,7 @@ CREATE TABLE post_likes (
     CONSTRAINT uk_post_likes_post_user UNIQUE (post_id, user_id)
 );
 
--- 12. Nutrition correction reports
+-- 13. Nutrition correction reports
 CREATE TABLE reports (
     report_id   BIGSERIAL PRIMARY KEY,
     user_id     BIGINT NOT NULL,

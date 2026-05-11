@@ -17,4 +17,6 @@ public class ReviewResponse {
     private Short star;
     private String content;
     private LocalDateTime createdAt;
+    private long likeCount;
+    private boolean liked;
 }

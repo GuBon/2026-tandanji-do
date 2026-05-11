@@ -16,5 +16,6 @@ public class StoreMarkerResponse {
     private Double latitude;
     private Double longitude;
     private String category;
+    private Double rating;
     private MarkerMacroDto markerMacro;
 }

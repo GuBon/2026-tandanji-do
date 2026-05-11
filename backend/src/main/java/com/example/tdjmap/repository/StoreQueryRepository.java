@@ -26,12 +26,14 @@ public class StoreQueryRepository {
                 CAST(s.latitude  AS DOUBLE PRECISION) AS latitude,
                 CAST(s.longitude AS DOUBLE PRECISION) AS longitude,
                 s.category,
+                CAST(ROUND(AVG(r.star)::numeric, 1) AS DOUBLE PRECISION) AS rating,
                 bm.carbs,
                 bm.protein,
                 bm.fat,
                 bm.nutrition_grade,
                 bm.nutrition_tags
             FROM tandanji.stores s
+            LEFT JOIN tandanji.reviews r ON r.store_id = s.store_id
             LEFT JOIN LATERAL (
                 SELECT
                     m.carbs,
@@ -74,6 +76,19 @@ public class StoreQueryRepository {
                         AND LOWER(sm.menu_name) LIKE :keywordLike
                   )
               )
+            GROUP BY
+                s.store_id,
+                s.brand_id,
+                s.store_name,
+                s.address,
+                s.latitude,
+                s.longitude,
+                s.category,
+                bm.carbs,
+                bm.protein,
+                bm.fat,
+                bm.nutrition_grade,
+                bm.nutrition_tags
             ORDER BY s.store_id
             """;
 
@@ -105,6 +120,7 @@ public class StoreQueryRepository {
                     .latitude(rs.getDouble("latitude"))
                     .longitude(rs.getDouble("longitude"))
                     .category(rs.getString("category"))
+                    .rating(toDouble(rs.getObject("rating")))
                     .markerMacro(macro)
                     .build();
         });
@@ -113,6 +129,11 @@ public class StoreQueryRepository {
     private Long toLong(Object obj) {
         if (obj == null) return null;
         return ((Number) obj).longValue();
+    }
+
+    private Double toDouble(Object obj) {
+        if (obj == null) return null;
+        return ((Number) obj).doubleValue();
     }
 
     private String toKeywordLike(String keyword) {

@@ -80,4 +80,20 @@ public class StoreController {
         ReviewResponse response = storeService.createReview(storeId, req);
         return ResponseEntity.status(201).body(ApiResponse.created(response));
     }
+
+    @GetMapping("/{storeId}/reviews/{reviewId}/likes")
+    public ResponseEntity<ApiResponse<ReviewLikeResponse>> getReviewLikeStatus(
+            @PathVariable Long storeId,
+            @PathVariable Long reviewId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(storeService.getReviewLikeStatus(storeId, reviewId)));
+    }
+
+    @PostMapping("/{storeId}/reviews/{reviewId}/likes")
+    public ResponseEntity<ApiResponse<ReviewLikeResponse>> toggleReviewLike(
+            @PathVariable Long storeId,
+            @PathVariable Long reviewId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(storeService.toggleReviewLike(storeId, reviewId)));
+    }
 }

@@ -129,7 +129,18 @@ CREATE TABLE reviews (
     FOREIGN KEY (store_id) REFERENCES stores(store_id)
 );
 
--- 10. 커뮤니티 게시판
+-- 10. 리뷰 하트
+CREATE TABLE review_likes (
+    like_id    BIGSERIAL PRIMARY KEY,
+    review_id  BIGINT NOT NULL,
+    user_id    BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES reviews(review_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT uk_review_likes_review_user UNIQUE (review_id, user_id)
+);
+
+-- 11. 커뮤니티 게시판
 CREATE TABLE posts (
     post_id    BIGSERIAL PRIMARY KEY,
     user_id    BIGINT    NOT NULL,
