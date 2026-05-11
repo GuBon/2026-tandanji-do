@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m ' *)",
-      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\admin\\\\Desktop\\\\2026-tandanji-do\\\\2026-tandanji-do\\\\frontend\\\\src\\\\features\\\\map\" -Recurse)"
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\admin\\\\Desktop\\\\2026-tandanji-do\\\\2026-tandanji-do\\\\frontend\\\\src\\\\features\\\\map\" -Recurse)",
+      "Bash(git commit *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$r = (codex review --uncommitted 2>&1 | Out-String).Trim(); if ($r) { Write-Output $r }; exit 2",
+            "shell": "powershell",
+            "timeout": 120,
+            "statusMessage": "Codex가 코드 검토 중...",
+            "asyncRewake": true
+          }
+        ]
+      }
     ]
   }
 }
