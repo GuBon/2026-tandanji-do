@@ -155,12 +155,17 @@ CREATE TABLE reports (
     report_id   BIGSERIAL    PRIMARY KEY,
     user_id     BIGINT       NOT NULL,            -- 제보자
     brand_id    BIGINT,                            -- 제보 대상 브랜드
+    store_name  VARCHAR(255),
+    store_address VARCHAR(500),
+    store_lat   DOUBLE PRECISION,
+    store_lon   DOUBLE PRECISION,
     menu_name   VARCHAR(255) NOT NULL,             -- 제보 메뉴명
     kcal        BIGINT,
     carbs       BIGINT,
     protein     BIGINT,
     fat         BIGINT,
     sugar       BIGINT,
+    image_url   VARCHAR(500),
     status      VARCHAR(20)  NOT NULL DEFAULT 'PENDING',  -- 'PENDING','APPROVED','REJECTED'
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)  REFERENCES users(user_id),
