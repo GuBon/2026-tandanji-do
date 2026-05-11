@@ -1,6 +1,6 @@
 package com.example.tdjmap.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/stores/*/menus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/stores/*/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/stores/*").permitAll()
+                        // 인증 불필요: 챗봇 추천·이미지 분석
+                        .requestMatchers(HttpMethod.POST, "/chatbot/recommend").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/chatbot/analyze").permitAll()
                         // 인증 불필요: 커뮤니티 게시글 조회
                         .requestMatchers(HttpMethod.GET, "/posts").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()

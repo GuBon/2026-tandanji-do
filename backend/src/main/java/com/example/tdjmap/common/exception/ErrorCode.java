@@ -12,6 +12,7 @@ public enum ErrorCode {
     STORE_HAS_NO_BRAND(500, "식당에 브랜드 정보가 없습니다."),
 
     // Review
+    REVIEW_NOT_FOUND(404, "리뷰를 찾을 수 없습니다."),
     REVIEW_INVALID_STAR(400, "별점은 1~5 사이여야 합니다."),
 
     // Post
@@ -43,6 +44,10 @@ public enum ErrorCode {
     IMAGE_TOO_LARGE(400, "이미지 크기는 10MB를 초과할 수 없습니다."),
     IMAGE_INVALID_DOMAIN(400, "잘못된 이미지 도메인입니다."),
     IMAGE_UPLOAD_FAILED(500, "이미지 저장에 실패했습니다."),
+
+    // Chatbot
+    AI_INVALID_REQUEST(422, "요청을 처리하지 못했어요. 위치나 이미지를 다시 확인한 뒤 다시 시도해 주세요."),
+    AI_API_UNAVAILABLE(503, "AI 추천 서비스에 일시적으로 접근할 수 없습니다."),
 
     // Common
     FORBIDDEN(403, "접근 권한이 없습니다."),
