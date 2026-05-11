@@ -177,6 +177,9 @@ CREATE TABLE reports (
     status      VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     store_name  VARCHAR(255),
+    store_address VARCHAR(500),
+    store_lat   DOUBLE PRECISION,
+    store_lon   DOUBLE PRECISION,
     image_url   VARCHAR(500),
     FOREIGN KEY (user_id)  REFERENCES users(user_id),
     FOREIGN KEY (brand_id) REFERENCES brands(brand_id)
