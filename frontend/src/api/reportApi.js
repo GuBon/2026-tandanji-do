@@ -1,9 +1,19 @@
 import { apiClient } from './apiClient.js'
 
-export async function submitReport({ storeName, menuName, carbs, protein, fat, imageUrl }) {
+export async function submitReport({ storeName, storeAddress, storeLat, storeLon, menuName, carbs, protein, fat, imageUrl }) {
   const res = await apiClient('/reports', {
     method: 'POST',
-    body: JSON.stringify({ storeName, menuName, carbs, protein, fat, imageUrl: imageUrl ?? null }),
+    body: JSON.stringify({
+      storeName,
+      storeAddress: storeAddress ?? null,
+      storeLat:     storeLat    ?? null,
+      storeLon:     storeLon    ?? null,
+      menuName,
+      carbs,
+      protein,
+      fat,
+      imageUrl: imageUrl ?? null,
+    }),
   })
   if (!res.ok) throw new Error(res.status)
   return res.json()
