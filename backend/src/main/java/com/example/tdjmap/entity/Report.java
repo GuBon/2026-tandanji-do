@@ -30,6 +30,15 @@ public class Report {
     @Column(name = "store_name")
     private String storeName;
 
+    @Column(name = "store_address", length = 500)
+    private String storeAddress;
+
+    @Column(name = "store_lat")
+    private Double storeLat;
+
+    @Column(name = "store_lon")
+    private Double storeLon;
+
     @Column(name = "menu_name", nullable = false)
     private String menuName;
 
