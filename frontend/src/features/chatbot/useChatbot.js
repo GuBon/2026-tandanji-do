@@ -67,7 +67,7 @@ export function useChatbot() {
     setPendingDietItems(null)
 
     if (!isYes) {
-      addAssistant('네 도움되셨길 바래요~')
+      addAssistant('네. 더 필요하신 게 있으면 언제든 말씀해 주세요!')
       return
     }
 
