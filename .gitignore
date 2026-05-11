@@ -9,6 +9,9 @@ CLAUDE.md
 **/*.log
 *.log.*
 **/*.log.*
+*.class
+uploads/
+**/uploads/
 .collector/
 
 # Presentation materials and generation helpers
