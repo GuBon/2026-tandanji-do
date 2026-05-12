@@ -2,6 +2,7 @@ import { useState } from 'react'
 import useMapStore from '../../store/useMapStore.js'
 import { getRecommendations, analyzeNutrition } from '../../api/chatbotApi.js'
 import { createDietLog, toLocalDateTimeStr } from '../../api/recordApi.js'
+import { uploadImage } from '../../api/imageApi.js'
 
 const INITIAL_MESSAGE = {
   id: 'init',
@@ -17,15 +18,20 @@ function getMealType() {
   return '간식'
 }
 
+const MAX_IMAGE_PX = 1024
+
 function fileToJpegDataUrl(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
     img.onload = () => {
+      const scale = Math.min(1, MAX_IMAGE_PX / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
       const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      canvas.getContext('2d').drawImage(img, 0, 0)
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
       URL.revokeObjectURL(url)
       resolve(canvas.toDataURL('image/jpeg', 0.85))
     }
@@ -83,6 +89,7 @@ export function useChatbot() {
             logProtein: Number(item.protein ?? 0),
             logFat: Number(item.fat ?? 0),
             logSugar: 0,
+            imgUrl: item.imgUrl ?? null,
             ateAt: toLocalDateTimeStr(),
           })
         )
@@ -140,7 +147,7 @@ export function useChatbot() {
     }
   }
 
-  const sendImage = async (file) => {
+  const sendImage = async (file, text = null) => {
     if (loading) return
     setLoading(true)
 
@@ -153,13 +160,19 @@ export function useChatbot() {
       return
     }
 
-    appendMsgs([{ role: 'user', imageDataUrl: dataUrl }])
+    appendMsgs([{ role: 'user', imageDataUrl: dataUrl, text: text || null }])
 
     try {
       const data = await analyzeNutrition({ image: dataUrl })
       const hasMenu = data.menuId != null && data.menuName != null
+
+      let imgUrl = null
+      if (hasMenu) {
+        try { imgUrl = await uploadImage(file, 'diet') } catch { /* 업로드 실패 시 imgUrl 없이 진행 */ }
+      }
+
       appendMsgs([{ role: 'assistant', text: data.reason, analysis: hasMenu ? data : null }])
-      if (hasMenu) promptDietAdd([data])
+      if (hasMenu) promptDietAdd([{ ...data, imgUrl }])
     } catch {
       addAssistant('이미지 분석을 처리하지 못했어요. 다시 시도해 주세요.')
     } finally {
