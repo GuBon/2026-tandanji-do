@@ -52,6 +52,19 @@ CREATE TABLE stores (
 
 CREATE INDEX idx_stores_location ON stores (latitude, longitude);
 
+-- LATERAL JOIN: 매장 전용 메뉴 검색 (store_id = s.store_id)
+CREATE INDEX idx_menus_store_id ON menus (store_id) WHERE store_id IS NOT NULL;
+
+-- LATERAL JOIN: 브랜드 공통 메뉴 검색 (store_id IS NULL AND brand_id = s.brand_id)
+CREATE INDEX idx_menus_brand_common ON menus (brand_id) WHERE store_id IS NULL;
+
+-- 키워드 검색 LIKE '%keyword%' 인덱스 (pg_trgm 확장 필요)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_stores_name_trgm ON stores USING gin (LOWER(store_name) gin_trgm_ops);
+CREATE INDEX idx_stores_addr_trgm ON stores USING gin (LOWER(COALESCE(address,'')) gin_trgm_ops);
+CREATE INDEX idx_brands_name_trgm ON brands USING gin (LOWER(COALESCE(brand_name,'')) gin_trgm_ops);
+CREATE INDEX idx_menus_name_trgm  ON menus  USING gin (LOWER(menu_name) gin_trgm_ops);
+
 -- 5. Menus and nutrition metadata
 CREATE TABLE menus (
     menu_id     BIGSERIAL PRIMARY KEY,
