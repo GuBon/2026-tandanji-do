@@ -1,6 +1,6 @@
 # CLAUDE.md — src/features/map/
 
-map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨 API를 통합한 핵심 기능이다.
+map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨 API, TMap 경로 API를 통합한 핵심 기능이다.
 
 ---
 
@@ -16,6 +16,7 @@ map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨
 - 모든 레이어에는 `properties: { id: '레이어명' }` 형태로 고유 ID를 부여한다.
 - 레이어 추가 전 `map.getLayers().getArray().find(l => l.get('id') === id)` 로 중복 확인.
 - 기존 레이어 ID: `vworld-base` — 변경하거나 재생성하지 말 것.
+- 경로 레이어 ID: `route-{seq}` 패턴 (useRouteLayer가 관리) — 직접 생성 금지.
 
 ### 좌표 규칙
 - **저장/전달**: 경도(lon), 위도(lat) 순서 — storeApi normalizer 및 `setLatLon(lat, lon)` 일관 유지.
@@ -31,10 +32,13 @@ map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨
 |----|------|
 | `useMapUI` | activeFilters(Set) / selectedStore / filterOpen 등 순수 UI 상태 |
 | `useMapStores` | 지도 bbox 추출 → GET /stores/search API 호출 → stores/loading/error 상태, 이전 요청 AbortController로 취소 |
-| `useStoreDetail` | 매장 상세 + 메뉴 + 리뷰 조회, 거리 정보 병합 |
+| `useStoreDetail` | 매장 상세 + 메뉴 + 리뷰 조회, 거리 정보 병합, 리뷰 작성/좋아요 |
 | `useMapMarkers` | 지도 좌표 → 픽셀좌표 변환 (postrender 이벤트 구독, storesRef 패턴) |
+| `useLocationPixel` | 내 위치(latLon) → 지도 픽셀 좌표 변환 (postrender 구독) — 내 위치 파란 점 마커 |
 | `useGeolocation` | 브라우저 위치 획득 + 지도 이동 + 권한 처리 |
 | `useWeather` | 기상청 API 호출, store에 weather/temperature/forecast 저장 |
+| `useRoute` | TMap API 호출 — 도보/자전거/차량/대중교통 경로, 거리/시간/칼로리 계산 |
+| `useRouteLayer` | 경로 GeoJSON → OpenLayers VectorLayer 추가/제거, 지도 뷰 fit |
 | `useMcpHost` | `window.__tdjmap__` 전역 MCP API 노출 — 다른 곳에서 수정 금지 |
 | `useVWorldLayer` | VWorld WMTS 레이어 객체 생성 (훅 아님, 팩토리 함수) |
 
@@ -65,7 +69,7 @@ useGeolocation → setLatLon → useMapStore.latLon
 | 클래스 | 값 | 용도 |
 |--------|----|------|
 | `z-map` | 0 | MapView 컨테이너 |
-| `z-marker` | 30 | MapMarker 오버레이 |
+| `z-marker` | 30 | MapMarker 오버레이 + 내 위치 파란 점 |
 | `z-canvas` | 35 | WeatherCanvas (비/눈 애니메이션) |
 | `z-ui` | 50 | SearchOverlay, WeatherWidget, FAB, StoreCard |
 | `z-modal` | 1000 | FilterBottomSheet, ReportModal (배경 dim + 패널 모두) |
@@ -129,13 +133,13 @@ useEffect(() => {
 - `grade: null` = 메뉴 정보 미등록 매장. `normalizeMarker()`에서 `nutritionGrade ?? null` — `'GREEN'` 폴백 절대 금지.
 - MapMarker: grade 없으면 회색 스타일(`bg: #F3F4F6`, `arrow: #9CA3AF`), 박스에 "정보 없음" 표시
 - StoreCard: grade 없으면 영양소 셀·태그 대신 "아직 메뉴 정보가 등록되지 않은 매장이에요" 안내
-- MapPage 필터 로직: `activeFilters.size > 0`이면 `!s.grade` 매장은 즉시 제외 (등급/태그 필터 모두 해당)
+- MapPage 필터 로직: `gradeFilters.length > 0`이면 해당 grade 매장만 통과 (null grade는 자동 제외)
 
 ---
 
 ## 데이터 소스
 
-- 매장 데이터: `src/api/storeApi.js` — `GET /stores/search` (bbox 기반 마커 목록), `GET /stores/{id}` + `/menus` (상세/메뉴)
+- 매장 데이터: `src/api/storeApi.js` — `GET /stores/search` (bbox + keyword 기반 마커 목록), `GET /stores/{id}` + `/menus` (상세/메뉴)
 - `useMapStores` 훅이 `mapInstance.moveend` 이벤트마다 bbox를 추출해 API 호출
 - 빠른 이동/필터 변경 시 오래된 검색 응답이 최신 마커를 덮지 않도록 `AbortController` 패턴 유지
 - 마커 포맷: `{ id, name, category, lat, lon, grade, tags, nutrition: { carbs, protein, fat } }` — `normalizeMarker()`가 변환
@@ -145,32 +149,86 @@ useEffect(() => {
 
 ### 필터 시스템
 
-- **상태**: `useMapUI`의 `activeFilters: Set<string>`, `toggleActiveFilter(key)` 로 토글, `null` 전달 시 전체 초기화
-- **UI**: `FilterBottomSheet` — 검색창 필터 아이콘으로 열림. 퀵필터 바 없음 (`QuickFilters.jsx` 미사용)
-  - 매장 등급 칩 (GREEN/YELLOW/RED → 균형식/일반식/주의식)
-  - 영양소 태그 칩 (고단백/고지방/고탄수/저탄수) — 이모지 없이 한글만
-  - 영양성분 슬라이더 (탄수화물/단백질/지방/당류)
-  - 헤더 `?` 버튼 → `FilterLegendSheet` 열기
-- **영양성분 슬라이더 적용**: `MapPage`의 `mapFilters` → `useMapStores(mapFilters)` → `GET /stores/search`의 `min_protein`, `max_carbs`, `max_fat`, `max_sugar` 쿼리로 전달
-- **필터 로직** (MapPage.jsx):
-  - 필터 없음 → 모든 매장 표시 (null grade 포함)
-  - 필터 있음 → null grade 매장 즉시 제외
+필터는 **백엔드 필터**와 **프론트 필터** 두 계층으로 나뉜다.
+
+**백엔드 필터** (`useMapStores`에 전달):
+- `keyword`: 매장명 검색 — SearchOverlay에서 입력, debounce 300ms 후 `storeFilters.keyword`로 전달
+
+**프론트 필터** (`MapPage.jsx`의 `visibleStores` useMemo):
+- `activeFilters(Set)`: 등급 칩(GREEN/YELLOW/RED) + 태그 칩(#고단백/등)
+- `nutritionFilters`: 영양성분 슬라이더 값 (`{ carbs: { min, max }, protein: { min, max }, fat: { min, max } }`)
+- 백엔드 응답 stores에 대해 프론트 필터를 추가로 적용하는 구조
+
+```js
+// MapPage.jsx 필터 로직
+const visibleStores = useMemo(() => {
+  const gradeFilters = [...activeFilters].filter(f => ['GREEN', 'YELLOW', 'RED'].includes(f))
+  const tagFilters   = [...activeFilters].filter(f => f.startsWith('#'))
+  return stores.filter(s => {
+    const gradeMatch     = gradeFilters.length === 0 || gradeFilters.includes(s.grade)
+    const tagMatch       = tagFilters.length === 0   || tagFilters.some(f => s.tags?.includes(f.replace('#', '')))
+    const nutritionMatch = !nutritionFilters || Object.entries(nutritionFilters).every(([key, range]) => {
+      const value = s.raw?.[key]
+      return value != null && value >= range.min && value <= range.max
+    })
+    return gradeMatch && tagMatch && nutritionMatch
+  })
+}, [stores, activeFilters, nutritionFilters])
+```
+
+**FilterBottomSheet UI** (검색창 필터 아이콘으로 열림):
+- 매장 등급 칩 (GREEN/YELLOW/RED → 균형식/일반식/주의식)
+- 영양소 태그 칩 (고단백/고지방/고탄수/저탄수) — 이모지 없이 한글만
+- 영양성분 슬라이더 (탄수화물/단백질/지방) — 적용 시 `onApplyNutritionFilters` 콜백
+- 헤더 `?` 버튼 → `FilterLegendSheet` 열기
+
 - 등급·태그는 **카테고리 간 AND, 카테고리 내 OR** (예: GREEN + 고단백 → 균형식이면서 고단백)
-- 영양성분 슬라이더는 백엔드 필터, 등급·태그 칩은 프론트 필터다. 둘을 합치면 백엔드 결과에 대해 프론트 칩 필터가 추가로 적용된다.
+- 슬라이더 값은 `nutritionFilters` state로 관리 — `stores.raw[key]` 숫자와 비교
 
 ### MapStorePage 메뉴 탭 기능
 
 - `MapStorePage.jsx`는 상세 페이지 조립만 담당한다.
-- 상세 데이터 로딩/거리 병합은 `useStoreDetail.js`, 히어로/정보/탭/메뉴/리뷰 UI 묶음은 `StoreDetailSections.jsx`가 담당한다.
-- 더 세세한 파일 분리는 중복이 실제로 생길 때만 진행한다.
+- 상세 데이터 로딩/거리 병합/리뷰는 `useStoreDetail.js`, 히어로/정보/탭/메뉴/리뷰 UI 묶음은 `StoreDetailSections.jsx`가 담당한다.
+- `useStoreDetail` 반환값: `{ store, reviews, loading, error, submitReview, toggleReviewLike }`
 - **grade 필터**: 전체 / 🟢 우수(GREEN) / 🟡 보통(YELLOW) / 🔴 주의(RED) — 메뉴 카드 배경·테두리도 grade별 색상
 - **정렬 드롭다운**: 단백질순 / 탄수화물순 / 지방순 — `menu.raw[key]` 숫자로 내림차순 정렬
 - 정렬은 `nutrition` 문자열이 아닌 `raw` 숫자로 해야 함 — 문자열 비교 시 정렬 불작동
+
+### TMap 경로 안내 (RouteBottomSheet)
+
+`MapPage.jsx`에서 StoreCard의 "경로 안내" 버튼 클릭 시 `RouteBottomSheet`가 열린다.
+
+```
+RouteBottomSheet
+├── useRoute(store)      — TMap API 호출, mode(walk/bike/transit/car) 관리
+└── useRouteLayer(routeData, mode) — 경로 VectorLayer 추가/제거, 지도 뷰 fit
+```
+
+- **이동 수단**: 도보(walk) / 자전거(bike) / 대중교통(transit) / 차량(car)
+- **대중교통**: TMap transit API → leg별 수단(WALK/BUS/SUBWAY/TRAM) 분리 렌더링
+- **자전거**: TMap 자전거 전용 API 없음 → 도보 경로를 가져와 자전거 속도(15km/h)로 시간 재계산
+- **칼로리**: MET × 체중(user.weight 우선, 없으면 65kg) × 시간(시간 단위)
+- `VITE_TMAP_API_KEY` → Vite 프록시 `/api/tmap` 경유
 
 ### useMapMarkers 주의 사항
 - `stores`를 effect deps에 넣으면 filter()가 매 렌더마다 새 배열을 만들어 무한 루프 발생.
 - 반드시 `storesRef` 패턴 유지: `storesRef.current = stores`로 최신값을 읽고, effect deps는 `[mapInstance]`만.
 - `setPixelPositions`는 functional update로 위치 변경 시에만 새 객체 반환 (불필요한 리렌더 방지).
+
+### useLocationPixel 사용 방법
+```jsx
+// MapPage.jsx
+const locationPixel = useLocationPixel()
+
+{locationPixel && (
+  <div className="absolute z-marker -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+       style={{ left: locationPixel.left, top: locationPixel.top }}>
+    {/* 파란 점 마커 */}
+  </div>
+)}
+```
+- `postrender` 이벤트로 latLon 변경/지도 이동 시 자동 업데이트.
+- latLon 없거나 mapInstance 없으면 `null` 반환.
 
 ### useStoreDistance 주의 사항
 - 거리/도보 시간은 현재 위치(`useMapStore.latLon`)와 매장 좌표의 Haversine 직선거리 기준.
@@ -182,6 +240,7 @@ useEffect(() => {
 
 - `MapView.jsx` 밖에서 `new Map(...)` 생성 금지.
 - `window.__tdjmap__` 외부에서 직접 수정 금지 (`useMcpHost.js`에서만 관리).
-- API 키(`VITE_VWORLD_API_KEY`, `VITE_WEATHER_API_KEY`)를 컴포넌트 코드에 하드코딩 금지 — `.env`에서만 참조.
+- API 키(`VITE_VWORLD_API_KEY`, `VITE_WEATHER_API_KEY`, `VITE_TMAP_API_KEY`)를 컴포넌트 코드에 하드코딩 금지 — `.env`에서만 참조.
 - 지도 레이어를 ID 없이 추가 금지 (중복 레이어 버그 원인).
 - `fromLonLat` 인자 순서 반전 금지 — `[lon, lat]` 고정.
+- 영양성분 슬라이더 필터를 백엔드 쿼리로 보내지 말 것 — 프론트 필터로만 처리.
