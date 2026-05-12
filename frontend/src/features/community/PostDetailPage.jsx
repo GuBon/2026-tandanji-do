@@ -98,9 +98,8 @@ export default function PostDetailPage() {
         {!loading && post && (
           <article className="flex flex-col gap-4">
             <div>
-              <div className="flex items-center justify-between gap-3">
+              <div>
                 <span className="text-xs font-semibold text-primary">{post.postType}</span>
-                <span className="text-xs text-gray-400">{post.nickname ?? '익명'}</span>
               </div>
               <h1 className="mt-2 text-2xl font-bold text-gray-900 leading-snug">{post.title}</h1>
               <p className="mt-1 text-xs text-gray-400">

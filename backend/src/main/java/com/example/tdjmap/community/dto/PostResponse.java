@@ -13,8 +13,6 @@ import java.time.LocalDateTime;
 public class PostResponse {
 
     private Long postId;
-    private Long authorId;
-    private String nickname;
     private String postType;
     private String title;
     private String content;
@@ -25,8 +23,6 @@ public class PostResponse {
     public static PostResponse from(Post post, long likeCount) {
         return PostResponse.builder()
                 .postId(post.getId())
-                .authorId(post.getUser().getId())
-                .nickname(post.getUser().getNickname())
                 .postType(post.getPostType())
                 .title(post.getTitle())
                 .content(post.getContent())

@@ -85,12 +85,9 @@ export default function CommunityPage() {
               onClick={() => navigate(`/community/post/${post.postId}`)}
               className="w-full rounded-2xl bg-white px-4 py-4 text-left shadow-sm border border-gray-100 active:bg-gray-50"
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold text-primary">{post.postType}</span>
-                <span className="text-xs text-gray-400">{post.nickname ?? '익명'}</span>
-              </div>
+              <span className="text-xs font-semibold text-primary">{post.postType}</span>
               <h3 className="mt-2 text-base font-bold text-gray-900 line-clamp-1">{post.title}</h3>
-              <p className="mt-1 text-sm text-gray-500 line-clamp-2">{post.content}</p>
+              <p className="mt-1 text-sm text-gray-500 line-clamp-2">{post.imageUrl && '📷 '}{post.content}</p>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
                 <span>좋아요 {post.likeCount ?? 0}</span>
                 <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString('ko-KR') : ''}</span>
