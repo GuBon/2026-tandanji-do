@@ -26,14 +26,15 @@ export default function useMapMarkers(stores) {
     })
   }, [mapInstance])
 
-  // postrender 이벤트 구독 (mapInstance 변경 시에만 재등록)
+  // postrender: 지도 렌더링 직후 픽셀 좌표 동기화 — 마커가 지도와 함께 부드럽게 이동
+  // setPixelPositions 내부에서 위치 불변 시 prev를 그대로 반환해 불필요한 리렌더를 방지
   useEffect(() => {
     if (!mapInstance) return
     mapInstance.on('postrender', update)
     return () => mapInstance.un('postrender', update)
   }, [mapInstance, update])
 
-  // stores 변경 시 즉시 픽셀 위치 재계산
+  // stores 변경 시 즉시 재계산
   useEffect(() => {
     update()
   }, [stores, update])

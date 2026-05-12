@@ -3,12 +3,15 @@ import { transformExtent } from 'ol/proj'
 import useMapStore from '../../store/useMapStore.js'
 import { searchStores } from '../../api/storeApi.js'
 
+const DEBOUNCE_MS = 200
+
 export default function useMapStores(filters = null) {
   const mapInstance = useMapStore((s) => s.mapInstance)
   const [stores, setStores]   = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
   const abortRef = useRef(null)
+  const timerRef = useRef(null)
 
   const fetchByBbox = useCallback(async (map) => {
     const size = map.getSize()
@@ -30,19 +33,21 @@ export default function useMapStores(filters = null) {
       if (e.name === 'AbortError') return
       setError(e.message)
     } finally {
-      if (abortRef.current === controller) {
-        setLoading(false)
-      }
+      if (abortRef.current === controller) setLoading(false)
     }
   }, [filters])
 
   useEffect(() => {
     if (!mapInstance) return
     fetchByBbox(mapInstance)
-    const handler = () => fetchByBbox(mapInstance)
+    const handler = () => {
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => fetchByBbox(mapInstance), DEBOUNCE_MS)
+    }
     mapInstance.on('moveend', handler)
     return () => {
       mapInstance.un('moveend', handler)
+      clearTimeout(timerRef.current)
       abortRef.current?.abort()
     }
   }, [mapInstance, fetchByBbox])

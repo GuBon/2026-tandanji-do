@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import NutritionCell from '../../components/NutritionCell.jsx'
 
 const GRADE_STYLE = {
@@ -14,7 +15,7 @@ const ArrowDown = ({ color }) => (
   </svg>
 )
 
-export default function MapMarker({ grade, name, nutrition = {}, onClick, compact = false }) {
+function MapMarker({ grade, name, nutrition = {}, onClick, compact = false }) {
   const { bg, arrow } = GRADE_STYLE[grade] ?? GRAY_STYLE
   const hasInfo = !!grade
 
@@ -50,3 +51,13 @@ export default function MapMarker({ grade, name, nutrition = {}, onClick, compac
     </button>
   )
 }
+
+// onClick은 매 렌더마다 새 참조가 생성되므로 비교에서 제외
+export default memo(MapMarker, (prev, next) =>
+  prev.grade   === next.grade   &&
+  prev.name    === next.name    &&
+  prev.compact === next.compact &&
+  prev.nutrition?.carbs   === next.nutrition?.carbs   &&
+  prev.nutrition?.protein === next.nutrition?.protein &&
+  prev.nutrition?.fat     === next.nutrition?.fat
+)
