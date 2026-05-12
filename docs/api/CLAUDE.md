@@ -45,7 +45,7 @@ Response HTTP코드: JSON 예시
 ## 현재 API 현황
 
 ```
-✅ 구현 완료  30개
+✅ 구현 완료  31개
   인증: 3개 (POST /auth/kakao, POST /auth/refresh, DELETE /auth/logout)
   매장: 5개 (search, detail, menus, reviews GET, reviews POST)
   커뮤니티: 6개 (GET/POST /posts, GET/DELETE /posts/{id}, likes GET/POST)
@@ -55,6 +55,7 @@ Response HTTP코드: JSON 예시
   신고: 3개 (POST /reports, GET /admin/reports, PATCH /admin/reports/{id}/status)
   사용자: 2개 (GET /users/me, PUT /users/me)
   이미지: 1개 (POST /images/upload) + GET /images/** 정적 서빙
+  챗봇: 2개 (POST /chatbot/recommend, POST /chatbot/analyze)
 
 ⬜ 미구현  0개
 ```

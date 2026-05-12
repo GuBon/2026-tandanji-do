@@ -102,6 +102,7 @@ Response 200:
     "longitude": 126.705,
     "brandId": 3,
     "category": "샐러드",
+    "rating": 4.3,
     "markerMacro": {
       "carbs": 45,
       "protein": 28,
@@ -124,6 +125,7 @@ Response 200:
   "longitude": 126.705,
   "category": "샐러드",
   "imageUrl": "http://localhost:8080/images/stores/uuid.jpg",
+  "rating": 4.3,
   "brand": {
     "brandId": 3,
     "brandName": "샐러디아",
@@ -163,7 +165,9 @@ Response 200:
     "nickname": "건강한하루",
     "star": 4,
     "content": "신선하고 맛있어요",
-    "createdAt": "2026-05-01T12:30:00"
+    "createdAt": "2026-05-01T12:30:00",
+    "likeCount": 3,
+    "liked": false
   }
 ]
 ```
@@ -179,6 +183,31 @@ Body:
 }
 
 Response 201: ReviewResponse (위와 동일 구조)
+```
+
+#### `GET /stores/{storeId}/reviews/{reviewId}/likes` — 리뷰 하트 상태 조회
+
+```
+Header: Authorization: Bearer <jwt>
+
+Response 200:
+{
+  "liked": true,
+  "likeCount": 3
+}
+```
+
+#### `POST /stores/{storeId}/reviews/{reviewId}/likes` — 리뷰 하트 토글
+
+```
+Header: Authorization: Bearer <jwt>
+Body: {}
+
+Response 200:
+{
+  "liked": false,
+  "likeCount": 2
+}
 ```
 
 ---
@@ -254,6 +283,7 @@ Body:
   "logProtein": 20,
   "logFat": 8,
   "logSugar": 0,
+  "imgUrl": "http://localhost:8080/images/diet/uuid.jpg",  // optional — 식단 사진
   "ateAt": "2026-05-04T12:30:00"
 }
 
@@ -535,6 +565,79 @@ Response 200:
 
 ---
 
+### 챗봇 (Chatbot)
+
+#### `POST /chatbot/recommend` — AI 메뉴 추천
+
+```
+인증 불필요
+Body:
+{
+  "lat": 37.4563,          // 필수 — 위도 (-90 ~ 90)
+  "lng": 126.7041,         // 필수 — 경도 (-180 ~ 180)
+  "weather": "rain",       // 선택 — sunny | partly-cloudy | cloudy | rain | snow
+  "temperature": 14,       // 선택 — 기온 °C (-60 ~ 70)
+  "message": "단백질 많은 음식 먹고 싶어"  // 필수 — 1~1000자
+}
+
+Response 200:
+{
+  "recommendations": [
+    {
+      "storeId": 94,
+      "storeName": "샐러디아 인천점",
+      "address": "인천시 ...",
+      "menuId": 212,
+      "menuName": "그린 파워볼",
+      "kcal": 480,
+      "carbs": 45,
+      "protein": 30,
+      "fat": 12,
+      "nutritionGrade": "GREEN",
+      "nutritionTags": ["고단백"]
+    }
+  ],
+  "reason": "단백질 비중이 높고 탄수화물 부담이 적은 근처 메뉴를 추천해드려요."
+}
+
+처리 기준:
+- recommendations 최대 3개 (빈 배열 가능 — 정상 케이스)
+- reason은 화면에 바로 표시 가능한 한국어 문장
+- AI 서버 장애 시 503 반환
+- 서버 간 HTTP로 tandanji-ai-api(192.168.110.63:3221)를 경유
+```
+
+#### `POST /chatbot/analyze` — 이미지 영양성분 분석
+
+```
+인증 불필요
+Body:
+{
+  "image": "data:image/jpeg;base64,..."  // 필수 — base64 Data URL
+}
+
+Response 200:
+{
+  "menuId": 212,              // null 가능 — AI가 DB 메뉴와 매칭 못한 경우
+  "menuName": "그린 파워볼",  // null 가능
+  "kcal": 480,                // null 가능
+  "carbs": 45,                // null 가능
+  "protein": 30,              // null 가능
+  "fat": 12,                  // null 가능
+  "nutritionGrade": "GREEN",  // null 가능
+  "nutritionTags": ["고단백"],// null 가능
+  "reason": "그린 파워볼과 유사한 구성으로 분석됩니다."  // 항상 존재
+}
+
+처리 기준:
+- menuId 없으면 reason만 반환 (나머지 null)
+- menuId 있으면 DB에서 영양정보 보강 후 반환
+- AI 서버 장애 시 503 반환
+- 서버 간 HTTP로 tandanji-ai-api(192.168.110.63:3221)를 경유
+```
+
+---
+
 ## ⬜ 미구현
 
 현재 없음.
@@ -554,3 +657,5 @@ Response 200:
 | 2026-05-07 | PATCH /admin/reports/{id}/status 누락 추가 → ✅ 구현 완료 21개 | API 계약 에이전트 |
 | 2026-05-07 | GET /users/me 구현 완료 → ✅ 이동, PUT /users/me만 ⬜ 잔존. 구현 완료 22개 | 백엔드 에이전트 |
 | 2026-05-07 | POST CRUD 4개 + PUT /users/me + POST /images/upload 구현 완료 → ✅ 이동. 미구현 → 이미지 컬럼 2개로 축소 | 백엔드 에이전트 |
+| 2026-05-08 | POST /chatbot/recommend 구현 완료 (AI API 연계, 서버 간 HTTP) | 백엔드 에이전트 |
+| 2026-05-11 | POST /chatbot/analyze 누락 추가 → ✅, POST /diet-logs imgUrl? 필드 누락 추가 | API 계약 에이전트 |

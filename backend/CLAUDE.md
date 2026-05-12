@@ -22,27 +22,31 @@ tdjmap/
 ├── config/
 │   ├── JwtUtil.java                     JWT 생성/검증/파싱 (jjwt 0.12.6)
 │   ├── JwtFilter.java                   OncePerRequestFilter — Bearer 토큰 → SecurityContext
-│   ├── SecurityUtil.java                SecurityUtil.getCurrentUserId() — 서비스 레이어 유틸
-│   ├── SecurityConfig.java              STATELESS + JwtFilter, /auth/** 및 GET /stores/**, GET /posts, GET /images/** 공개
+│   ├── SecurityUtil.java                두 가지 유틸 메서드:
+│   │                                      getCurrentUserId()      — 미인증 시 AUTH_INVALID_TOKEN
+│   │                                      getCurrentUserIdOrNull() — 미인증 시 null 반환 (비로그인 허용 조회)
+│   ├── SecurityConfig.java              STATELESS + JwtFilter (공개/인증 규칙 상세는 아래 API 목록 참조)
 │   ├── WebMvcConfig.java                /images/** → file:uploads/ 정적 서빙
 │   └── AppConfig.java                   RestClient 빈 등록
 ├── auth/
 │   ├── controller/AuthController.java   POST /auth/kakao, POST /auth/refresh, DELETE /auth/logout
 │   ├── service/AuthService.java         카카오 Authorization Code 교환 → JWT 발급
 │   └── dto/  KakaoLoginRequest  TokenResponse  TokenRefreshRequest
-├── entity/                              Brand Menu Post PostLike Review Store User
-│                                        DietLog ExerciseLog ExerciseType Report SocialLogin
+├── entity/                              Brand Menu Post PostLike Review ReviewLike
+│                                        Store User DietLog ExerciseLog ExerciseType Report SocialLogin
 ├── repository/                          JpaRepository 확장 + StoreQueryRepository (Native SQL)
+│                                        ReviewLikeRepository — countByReviewIds(batch) / findLikedReviewIds(batch)
 │                                        SocialLoginRepository.findByUser_IdAndProvider()
 ├── store/
 │   ├── controller/StoreController.java
 │   ├── service/StoreService.java
 │   └── dto/  StoreSearchRequest StoreMarkerResponse StoreDetailResponse
 │             MenuResponse ReviewResponse ReviewCreateRequest MarkerMacroDto
+│             ReviewLikeResponse
 ├── community/
 │   ├── controller/PostController.java
 │   ├── service/PostService.java
-│   └── dto/  PostCreateRequest PostResponse PostLikeResponse
+│   └── dto/  PostCreateRequest PostResponse PostLikeResponse PostLikeToggleRequest
 ├── record/
 │   ├── controller/RecordController.java
 │   ├── service/DietRecordService.java
@@ -52,7 +56,7 @@ tdjmap/
 ├── report/
 │   ├── controller/ReportController.java
 │   ├── service/ReportService.java
-│   └── dto/  ReportCreateRequest ReportAdminResponse
+│   └── dto/  ReportCreateRequest ReportAdminResponse ReportStatusRequest
 └── collector/
     └── FatSecretKrCrawler.java          fatsecret.kr Jsoup 크롤러
 ```
@@ -76,20 +80,36 @@ POST /auth/refresh           refreshToken → 새 JWT 발급
 DELETE /auth/logout          Authorization: Bearer — refreshToken 무효화
 
 GET  /stores/search          지도 bbox + 필터로 마커 목록
-GET  /stores/{id}            매장 상세 (브랜드 포함)
+  Query: sw_lat, sw_lng, ne_lat, ne_lng
+         category (optional)
+         q (optional) — 매장명/주소/브랜드명/메뉴명 키워드 검색 (LIKE, case-insensitive)
+  ※ 영양소 필터(min_protein 등)는 프론트에서 처리 — 백엔드 파라미터 없음
+
+GET  /stores/{id}            매장 상세 (브랜드 포함, rating 포함)
 GET  /stores/{id}/menus      매장 전용 메뉴 + 브랜드 공통 메뉴 목록 (nutrition_info 등급/태그 포함)
-GET  /stores/{id}/reviews    리뷰 목록 (최신순)
+GET  /stores/{id}/reviews    리뷰 목록 (최신순, likeCount + liked 포함)
+GET  /stores/{id}/reviews/{reviewId}/likes   리뷰 좋아요 상태 (liked, likeCount)
 
 GET  /posts                  게시글 목록  ?postType=&page=0&size=20
 GET  /posts/{id}             게시글 상세
 
 GET  /images/**              업로드된 이미지 파일 서빙 (인증 불필요)
 
+POST /chatbot/recommend      메뉴 추천  { lat, lng, message, weather?, temperature? }
+                             → { reason, recommendations: Item[] }
+                             Item: { storeId, storeName, address, lat, lon, menuId, menuName,
+                                     kcal, carbs, protein, fat, nutritionGrade, nutritionTags }
+POST /chatbot/analyze        이미지 영양성분 분석  { image }  // base64 Data URL
+                             → { menuId?, menuName?, kcal?, carbs?, protein?, fat?,
+                                  nutritionGrade?, nutritionTags?, reason }
+
 [인증 필요 — Authorization: Bearer <jwt>]
 POST /images/upload          이미지 업로드  ?domain=stores|brands|menus|posts|diet|users|reviews|reports
                              → { imageUrl: "http://localhost:8080/images/{domain}/{uuid}.ext" }
 
-POST /stores/{id}/reviews    리뷰 작성  { star, content }
+POST /stores/{id}/reviews    리뷰 작성  { star(1-5), content }
+POST /stores/{id}/reviews/{reviewId}/likes  리뷰 좋아요 토글 → ReviewLikeResponse
+
 POST /posts                  게시글 작성  { postType, title, content, imageUrl? }
 DELETE /posts/{id}           게시글 삭제 (작성자 본인만 — 403 otherwise)
 GET  /posts/{id}/likes       좋아요 수 + 내 좋아요 여부
@@ -129,6 +149,17 @@ Controller → Service → Repository
 - 응답: 항상 `ResponseEntity<ApiResponse<T>>`
 - 예외: `throw new BusinessException(ErrorCode.XXX)` — 직접 RuntimeException 사용 금지
 
+### SecurityUtil 사용 규칙
+
+```java
+// 인증 필수 API (미인증 시 AUTH_INVALID_TOKEN 예외)
+Long userId = SecurityUtil.getCurrentUserId();
+
+// 인증 선택 API — 비로그인도 조회 가능하지만 개인화 데이터 추가 (예: 리뷰 좋아요 여부)
+Long userId = SecurityUtil.getCurrentUserIdOrNull();
+if (userId != null) { /* 좋아요 여부 로드 */ }
+```
+
 ### Entity 패턴
 
 ```java
@@ -158,20 +189,29 @@ Controller → Service → Repository
 POST_NOT_FOUND(404, "게시글을 찾을 수 없습니다."),
 ```
 
+### Jackson 3.x 주의
+
+Spring Boot 4는 Jackson 3.x를 사용한다. `JsonNode`에서 문자열 추출 시:
+- `asText()` / `textValue()` → **deprecated**
+- `stringValue()` → **사용**
+
 ### DO / DON'T
 
 ```
 ✅ DO
 - 복잡한 쿼리는 StoreQueryRepository처럼 별도 QueryRepository 분리
 - 내부 헬퍼는 private findXxxOrThrow() 패턴으로 통일
-- 인증 필요 API에서 userId는 SecurityUtil.getCurrentUserId() 로만 추출
+- 인증 필수 API에서 userId: SecurityUtil.getCurrentUserId() 로만 추출
+- 비로그인 허용 조회 API에서 개인화 데이터: SecurityUtil.getCurrentUserIdOrNull() 사용
 - PostgreSQL jsonb 컬럼에 매핑하는 String 필드에는 @JdbcTypeCode(SqlTypes.JSON) 추가
+- 리뷰/게시글 등 like 수 배치 조회로 N+1 방지 (countByXxxIds 패턴)
 
 ❌ DON'T
 - ddl-auto를 validate/update/create로 변경 금지 — 스키마는 직접 SQL 실행
 - Entity에 비즈니스 로직 작성 금지
 - 새 도메인을 루트 패키지에 직접 생성 금지 — 반드시 feature 패키지 하위
 - userId를 요청 파라미터/바디로 수신 금지 — JWT에서 추출
+- Jackson 3.x에서 asText()/textValue() 사용 금지 — stringValue() 사용
 ```
 
 ---
@@ -223,6 +263,7 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 | menus | 503건 | fatsecret.kr 크롤링 |
 | stores | 174건 | PostGIS EPSG:5179→4326 변환 |
 | post_likes | — | UNIQUE(post_id, user_id) |
+| review_likes | — | UNIQUE(review_id, user_id) |
 
 ### 주요 테이블 상세
 
@@ -238,13 +279,13 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 
 **메뉴 조회/마커 매크로 규칙**:
 - `GET /stores/{id}/menus`: 해당 `store_id` 전용 메뉴 + 같은 브랜드의 공통 메뉴(`store_id IS NULL`)를 함께 반환
-- `GET /stores/search`: `StoreQueryRepository`의 LATERAL 쿼리로 매장 전용 메뉴를 브랜드 공통 메뉴보다 우선하여 대표 매크로를 선택
-- 영양 필터(`min_protein`, `max_carbs`, `max_fat`, `max_sugar`)가 있으면 조건을 만족하는 메뉴가 없는 매장은 제외
+- `GET /stores/search`: `StoreQueryRepository`의 LATERAL 쿼리로 매장 전용 메뉴를 브랜드 공통 메뉴보다 우선하여 대표 매크로를 선택. 키워드 검색은 매장명/주소/브랜드명/메뉴명 대상 LIKE 검색.
 
 **stores/posts 이미지**:
 - `stores.image_url VARCHAR(500)` — 매장 대표 이미지, 상세 API `imageUrl`
 - `posts.image_url VARCHAR(500)` — 커뮤니티 첨부 이미지
 - `post_likes` — `UNIQUE(post_id, user_id)`로 중복 좋아요 방지
+- `review_likes` — `UNIQUE(review_id, user_id)`로 중복 좋아요 방지
 
 ### 로컬 데이터 파일 (git 미포함)
 
@@ -265,10 +306,6 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 6. ./gradlew compileJava 로 검증
 ```
 
-### 미구현
-
-현재 없음.
-
 ### 주요 결정 사항
 
 - FatSecret API 방식 폐기 → fatsecret.kr 직접 크롤링으로 전환
@@ -276,3 +313,5 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 - 카카오 인증: Implicit Flow(팝업) 폐기 → Authorization Code Flow 채택 (백엔드가 REST API 키로 토큰 교환)
 - JWT: access token 1시간(메모리), refresh token 30일(DB + 프론트 localStorage)
 - SocialLogin.profileData (jsonb): Hibernate 6에서 `@JdbcTypeCode(SqlTypes.JSON)` 필수 — 없으면 varchar→jsonb 캐스트 오류 발생
+- 영양소 필터(min_protein 등): 백엔드 쿼리 파라미터 제거, 프론트에서 클라이언트 필터로 처리
+- RestClient / JDK HttpClient 모두 Spring Boot 4 + Jackson 3.x 환경에서 챗봇 AI 요청 바디 누락(422) 버그 확인 → ChatbotService는 HttpURLConnection 직접 사용

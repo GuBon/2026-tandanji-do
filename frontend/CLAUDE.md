@@ -12,36 +12,46 @@ src/
 ├── api/               apiClient.js storeApi.js recordApi.js reportApi.js
 │                      imageApi.js   — POST /images/upload (multipart, JWT 자동 주입)
 │                      postApi.js    — GET/POST/DELETE /posts + 좋아요 상태/토글
+│                      chatbotApi.js — POST /chatbot/recommend, POST /chatbot/analyze
+│                      userApi.js    — GET/PUT /users/me
 ├── components/        PageLayout Header BottomNavBar Button NutritionCell
-│                      ImageUploader — 이미지 업로드 공통 컴포넌트 (domain, onChange, aspectRatio)
+│                      ImageUploader   — 이미지 업로드 공통 컴포넌트 (domain, onChange, aspectRatio)
+│                      AuthRequiredModal BottomSheet
+├── hooks/             useAuthRequired.js — requireAuth(fn) 패턴, 비인증 시 AuthRequiredModal
 ├── features/
 │   ├── auth/          AuthGuard useKakaoLogin OAuthCallbackPage
 │   ├── admin/         AdminGuard AdminReportPage useAdminReports
 │   ├── map/           MapPage MapView + 커스텀 훅 + 모달/오버레이
 │   │                  MapStorePage + useStoreDetail + StoreDetailSections
+│   │                  RouteBottomSheet + useRoute + useRouteLayer (TMap 경로)
+│   │                  useLocationPixel — 내 위치 픽셀 좌표 추적
 │   ├── record/        RecordPage(탭) DietTab ExerciseTab useDiet useExercise + 모달들
+│   │                  DietRecordPage — 식단 상세 기록 페이지 (/diet)
 │   ├── chatbot/       ChatbotPage useChatbot
-│   └── community/     CommunityPage PostCreatePage PostDetailPage
+│   ├── community/     CommunityPage PostCreatePage PostDetailPage
+│   └── user/          BodyProfilePage — 신장/체중 수정 (/profile/body)
 └── store/             useAuthStore useDietStore useMapStore useExerciseStore
 ```
 
 ### 라우팅 구조
 
 ```
-/oauth/callback       OAuthCallbackPage  (AuthGuard 바깥 — 카카오 콜백)
-/                   → /map (리다이렉트)
-/map                  MapPage
-/map/store/:id        MapStorePage
-/record               RecordPage (식단/운동 탭)
-/chatbot              ChatbotPage
-/community            CommunityPage
-/community/create     PostCreatePage
-/community/post/:id   PostDetailPage
-/admin/reports        AdminReportPage  (AdminGuard 보호 — role: ADMIN 필요)
+/oauth/callback         OAuthCallbackPage  (AuthGuard 바깥 — 카카오 콜백)
+/                     → /map (리다이렉트)
+/map                    MapPage
+/map/store/:id          MapStorePage
+/diet                   DietRecordPage     (식단 상세 기록)
+/record                 RecordPage         (식단/운동 탭)
+/profile/body           BodyProfilePage    (신장/체중 수정)
+/chatbot                ChatbotPage
+/community              CommunityPage
+/community/create       PostCreatePage
+/community/post/:id     PostDetailPage
+/admin/reports          AdminReportPage    (AdminGuard 보호 — role: ADMIN 필요)
 ```
 
 `/oauth/callback`을 제외한 모든 라우트는 `AuthGuard`로 보호됨 (카카오 로그인 또는 게스트 모드).  
-새로고침 직후 access token 복원 중에는 자식 라우트를 렌더링하지 않는다. `user`는 persist되지만 access token은 메모리라, 복원 전 API 호출은 401을 만들 수 있다.
+새로고침 직후 access token 복원 중에는 자식 라우트를 렌더링하지 않는다. `user`는 persist되지만 access token은 메모리라, 복원 전 API 호출은 401을 만들 수 있다.  
 `/admin/reports`는 `AuthGuard` 내부에서 추가로 `AdminGuard`(role 검사)가 중첩 적용됨.
 
 ### 환경변수 (.env)
@@ -52,6 +62,7 @@ VITE_KAKAO_APP_KEY=            카카오 JavaScript 키 (Kakao SDK 초기화)
 VITE_KAKAO_REDIRECT_URI=       카카오 콜백 URI (http://localhost:5173/oauth/callback)
 VITE_WEATHER_API_KEY=          기상청 API
 VITE_API_BASE_URL=             백엔드 API (http://localhost:8080)
+VITE_TMAP_API_KEY=             TMap API (경로 안내)
 ```
 
 ---
@@ -102,8 +113,21 @@ try {
 }
 ```
 
-- 백엔드 도메인 API는 `apiClient` 또는 전용 API 모듈을 사용한다. 예외: `/auth/refresh`, `/auth/kakao`, `/auth/logout`, `multipart/form-data` 이미지 업로드, 외부 기상/위치 API
+- 백엔드 도메인 API는 `apiClient` 또는 전용 API 모듈을 사용한다. 예외: `/auth/refresh`, `/auth/kakao`, `/auth/logout`, `multipart/form-data` 이미지 업로드, 외부 기상/위치/TMap API
 - 응답은 항상 `ApiResponse<T>` 래퍼: `{ status, data, message }` 구조
+
+### useAuthRequired 훅
+
+```js
+const { requireAuth, modalOpen, closeModal } = useAuthRequired()
+
+// 비로그인/게스트 → AuthRequiredModal 표시
+// 로그인 상태 → fn() 즉시 실행
+requireAuth(() => navigate('/community/create'))
+```
+
+- 인증이 필요한 액션(글쓰기, 좋아요, 제보 등) 앞에 반드시 `requireAuth()` 래핑
+- `AuthRequiredModal`은 호출한 컴포넌트가 직접 `<AuthRequiredModal onClose={closeModal} />` 렌더링
 
 ### 디자인 시스템
 
@@ -132,7 +156,6 @@ on-surface:  #2b3437
 `src/components/ImageUploader.jsx` — 이미지 업로드 공통 컴포넌트.
 
 ```jsx
-// 사용 패턴: 이미지 URL을 부모 상태로 관리
 const [imageUrl, setImageUrl] = useState(null)
 <ImageUploader domain="diet" onChange={setImageUrl} aspectRatio="4/3" />
 ```
@@ -172,6 +195,7 @@ sheet-confirm   바텀시트 확인
 - h-dvh 사용 (모바일 주소창 대응)
 - 모달/바텀시트는 overflow-hidden 부모 바깥, fixed 포지션
 - 인증 필요 API는 반드시 apiClient() 사용 (JWT 헤더 자동 주입)
+- 인증이 필요한 액션은 반드시 requireAuth()로 감싼다
 
 ❌ DON'T
 - API 키를 컴포넌트 코드에 하드코딩 금지 (.env 에서만)
@@ -199,36 +223,35 @@ npm run preview  # 빌드 결과 미리보기
 |-------|-----------|
 | useAuthStore | user, jwtAccessToken(메모리), jwtRefreshToken(persist), isGuest, isLoading |
 | useDietStore | meals[] |
-| useMapStore | mapInstance, center, zoom, latLon, weather, temperature, forecast |
+| useMapStore | mapInstance, center, zoom, latLon, weather, temperature, forecast, pendingStore |
 | useExerciseStore | exercises[] |
 
 **useAuthStore persist 전략**
 - `jwtRefreshToken` + `user` → localStorage (`auth-storage` 키)
 - `jwtAccessToken` → 메모리만 (페이지 새로고침 시 초기화 → AuthGuard가 refresh 호출로 복원)
 
-### 기상청 API 프록시
+### Vite 프록시 설정 (vite.config.js)
 
-`vite.config.js`에 설정됨:
 ```
-/api/kma → https://apis.data.go.kr
+/api/kma  → https://apis.data.go.kr       # 기상청 API
+/api/tmap → https://apis.openapi.sk.com   # TMap 경로 API
 ```
 
 ### 매장 UI 데이터 구조 (storeApi.js normalizer 출력)
 
 ```js
 // GET /stores/search → normalizeMarker()
-// 백엔드 응답 markerMacro.nutritionGrade → grade, 수치 기반 태그 파생
 { id, name, category, lat, lon, grade, tags: string[], nutrition: { carbs, protein, fat } }
 // grade: 'GREEN' | 'YELLOW' | 'RED' | null  // null = 메뉴 정보 미등록 (회색 마커)
 // tags: ['고단백', '저탄수', '저지방'] — 프론트 파생 (protein≥25→고단백, carbs≤40→저탄수, fat≤10→저지방)
 
 // GET /stores/{id} + /menus → normalizeStoreDetail()
 { id, name, category, address, lat, lon, image, grade, tags, nutrition, menus: MenuItem[] }
-// image는 stores.imageUrl 우선, 없으면 brand.logoUrl 폴백
+// image: stores.imageUrl 우선, 없으면 brand.logoUrl 폴백
 // MenuItem: {
 //   id, name, description, price, imageUrl,
-//   grade: 'GREEN' | 'YELLOW' | 'RED' | null,  // nutritionGrade
-//   tags: string[],                              // nutritionTags
+//   grade: 'GREEN' | 'YELLOW' | 'RED' | null,
+//   tags: string[],
 //   nutrition: { carbs: '45g', protein: '20g', fat: '10g' },  // 표시용 문자열
 //   raw:       { carbs: 45,    protein: 20,    fat: 10    },   // 정렬용 숫자
 // }
@@ -261,7 +284,7 @@ deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
 5. BottomNavBar에 탭 추가 (필요시)
 ```
 
-### 미구현 — 다음 작업
+### 구현 완료 목록
 
 ```
 ✅ 맵 백엔드 API 연동 (GET /stores/search + /stores/{id} + /menus)
@@ -272,6 +295,9 @@ deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
 ✅ 커뮤니티 게시글 목록/상세 GET /posts 연동
 ✅ 커뮤니티 좋아요 상태/토글 연동 (비로그인 클릭 시 AuthRequiredModal)
 ✅ 사용자 프로필 조회 GET /users/me 연동 (AuthGuard 로그인 후 자동 로드)
-□ 사용자 프로필 수정 UI → PUT /users/me 연동
-□ 챗봇 실제 AI/API 연동 (현재 로컬 메시지 입력 UI만 있음)
+✅ 사용자 프로필 수정 UI → PUT /users/me 연동 (BodyProfilePage.jsx)
+✅ 챗봇 AI 연동 — 메뉴 추천 / 이미지 영양성분 분석 / 식단 기록 추가 / 추천 카드 → 지도 이동
+✅ 매장 상세 리뷰 작성/좋아요 연동 (useStoreDetail)
+✅ TMap 경로 안내 (도보/자전거/차량/대중교통) — RouteBottomSheet + useRoute + useRouteLayer
+✅ 내 위치 픽셀 마커 표시 — useLocationPixel
 ```
