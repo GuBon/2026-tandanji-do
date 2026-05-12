@@ -10,6 +10,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/kma/, ''),
       },
+      '/api/tmap': {
+        target: 'https://apis.openapi.sk.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/tmap/, ''),
+      },
     },
   },
 })

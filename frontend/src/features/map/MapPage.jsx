@@ -10,6 +10,7 @@ import FilterBottomSheet from './FilterBottomSheet.jsx'
 import ReportModal from './ReportModal.jsx'
 import MapMarker from './MapMarker.jsx'
 import StoreCard from './StoreCard.jsx'
+import RouteBottomSheet from './RouteBottomSheet.jsx'
 import BottomNavBar from '../../components/BottomNavBar.jsx'
 import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import useMapUI from './useMapUI.js'
@@ -28,6 +29,7 @@ const WEATHER_OPTIONS = ['sunny', 'rain', 'snow']
 export default function MapPage() {
   const navigate = useNavigate()
   const [reportOpen, setReportOpen] = useState(false)
+  const [routeOpen, setRouteOpen] = useState(false)
   const [nutritionFilters, setNutritionFilters] = useState(null)
   const [searchInput, setSearchInput] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -71,7 +73,7 @@ export default function MapPage() {
     moveTo(pendingStore.x, pendingStore.y, 16)
     selectStore(pendingStore)
     clearPendingStore()
-  }, [mapInstance, pendingStore])
+  }, [mapInstance, pendingStore, moveTo, selectStore, clearPendingStore])
 
   const storeFilters = useMemo(() => ({
     ...(searchKeyword.trim() ? { keyword: searchKeyword.trim() } : {}),
@@ -79,22 +81,35 @@ export default function MapPage() {
 
   const { stores, loading, error } = useMapStores(storeFilters)
 
-  const visibleStores = stores.filter((s) => {
+  const visibleStores = useMemo(() => {
     const gradeFilters = [...activeFilters].filter((f) => ['GREEN', 'YELLOW', 'RED'].includes(f))
-    const tagFilters = [...activeFilters].filter((f) => f.startsWith('#'))
-    const gradeMatch = gradeFilters.length === 0 || gradeFilters.includes(s.grade)
-    const tagMatch = tagFilters.length === 0 || tagFilters.some((f) => s.tags?.includes(f.replace('#', '')))
-    const nutritionMatch = !nutritionFilters || Object.entries(nutritionFilters).every(([key, range]) => {
-      const value = s.raw?.[key]
-      if (value == null) return false
-      return value >= range.min && value <= range.max
+    const tagFilters   = [...activeFilters].filter((f) => f.startsWith('#'))
+    return stores.filter((s) => {
+      const gradeMatch     = gradeFilters.length === 0 || gradeFilters.includes(s.grade)
+      const tagMatch       = tagFilters.length === 0   || tagFilters.some((f) => s.tags?.includes(f.replace('#', '')))
+      const nutritionMatch = !nutritionFilters || Object.entries(nutritionFilters).every(([key, range]) => {
+        const value = s.raw?.[key]
+        return value != null && value >= range.min && value <= range.max
+      })
+      return gradeMatch && tagMatch && nutritionMatch
     })
-    return gradeMatch && tagMatch && nutritionMatch
-  })
+  }, [stores, activeFilters, nutritionFilters])
 
   const pixelPositions = useMapMarkers(visibleStores)
   const storeDistances = useStoreDistance(stores)
   const locationPixel = useLocationPixel()
+
+  const selectedStoreWithDistance = useMemo(
+    () => selectedStore ? { ...selectedStore, ...storeDistances[selectedStore.id] } : null,
+    [selectedStore, storeDistances],
+  )
+
+  const searchResults = useMemo(
+    () => searchInput.trim()
+      ? visibleStores.map((s) => ({ ...s, ...storeDistances[s.id] }))
+      : [],
+    [searchInput, visibleStores, storeDistances],
+  )
 
   const handleSearchSelect = (store) => {
     const [x, y] = fromLonLat([store.lon, store.lat])
@@ -158,7 +173,7 @@ export default function MapPage() {
           onChange={setSearchInput}
           onSearch={(keyword = searchInput) => setSearchKeyword(keyword)}
           onFilterClick={toggleFilter}
-          results={searchInput.trim() ? visibleStores.map(s => ({ ...s, ...storeDistances[s.id] })) : []}
+          results={searchResults}
           onSelect={handleSearchSelect}
         />
 
@@ -201,10 +216,13 @@ export default function MapPage() {
           </div>
         )}
 
-        <StoreCard
-          store={selectedStore ? { ...selectedStore, ...storeDistances[selectedStore.id] } : null}
-          onClose={closeStore}
-        />
+        {!routeOpen && (
+          <StoreCard
+            store={selectedStoreWithDistance}
+            onClose={closeStore}
+            onRoute={() => setRouteOpen(true)}
+          />
+        )}
       </div>
 
       <BottomNavBar />
@@ -220,6 +238,12 @@ export default function MapPage() {
         />
       )}
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
+      {routeOpen && selectedStore && (
+        <RouteBottomSheet
+          store={selectedStore}
+          onClose={() => setRouteOpen(false)}
+        />
+      )}
       {authModalOpen && <AuthRequiredModal onClose={closeAuthModal} />}
     </div>
   )

@@ -26,18 +26,26 @@ const StarIcon = () => (
   </svg>
 )
 
+const RouteIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6" cy="19" r="3"/>
+    <circle cx="18" cy="5" r="3"/>
+    <path d="M6 16V9a6 6 0 0112 0v7"/>
+  </svg>
+)
+
 function formatRating(rating) {
   return rating != null ? Number(rating).toFixed(1) : '--'
 }
 
-export default function StoreCard({ store, onClose }) {
+export default function StoreCard({ store, onClose, onRoute }) {
   const navigate = useNavigate()
 
   if (!store) return null
 
   return (
     <div className="absolute left-5 right-5 bottom-4 z-ui">
-      <div className="w-full bg-white rounded-[32px] shadow-lg flex items-center px-5 py-4 gap-4 relative">
+      <div className="w-full bg-white rounded-[32px] shadow-lg flex items-center px-5 py-4 gap-4">
 
         {/* 가게 이미지 */}
         <div className="w-24 h-24 rounded-2xl bg-gray-100 shrink-0 overflow-hidden">
@@ -48,14 +56,32 @@ export default function StoreCard({ store, onClose }) {
 
         {/* 정보 */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
-          {/* 상단: 이름 + 주소 + 거리/시간/kcal */}
-          <div className="flex flex-col gap-0.5">
+          {/* 상단: 이름 + 버튼 행 */}
+          <div className="flex items-start gap-2">
             <button
               onClick={() => navigate(`/map/store/${store.id}`)}
-              className="text-[18px] font-bold text-gray-800 truncate text-left hover:text-emerald-700 transition-colors leading-snug"
+              className="flex-1 min-w-0 text-[17px] font-bold text-gray-800 truncate text-left hover:text-emerald-700 transition-colors leading-snug"
             >
               {store.name}
             </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={onRoute}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-semibold hover:bg-emerald-600 transition-colors"
+              >
+                <RouteIcon />
+                길찾기
+              </button>
+              <button
+                onClick={onClose}
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {/* 주소 + 거리/시간/kcal */}
+          <div className="flex flex-col gap-0.5">
             <p className="text-[12px] text-gray-400 truncate">{store.address ?? '주소 정보 없음'}</p>
             <div className="flex items-center gap-3 mt-0.5 overflow-hidden">
               <span className="flex items-center gap-1 text-[11px] text-gray-400 whitespace-nowrap shrink-0">
@@ -77,9 +103,9 @@ export default function StoreCard({ store, onClose }) {
           {store.grade ? (
             <>
               <div className="flex gap-2">
-                <NutritionCell label="PROTEIN" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
-                <NutritionCell label="CARBS"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
-                <NutritionCell label="FAT"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
+                <NutritionCell label="단백질" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
+                <NutritionCell label="탄수화물"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
+                <NutritionCell label="지방"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
               </div>
               {store.tags?.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap">
@@ -101,13 +127,7 @@ export default function StoreCard({ store, onClose }) {
           )}
         </div>
 
-        {/* 닫기 */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xl leading-none"
-        >
-          ×
-        </button>
+
       </div>
     </div>
   )
