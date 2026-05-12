@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.Types;
 import java.util.List;
 
@@ -23,10 +24,10 @@ public class StoreQueryRepository {
                 s.brand_id,
                 s.store_name,
                 s.address,
-                CAST(s.latitude  AS DOUBLE PRECISION) AS latitude,
-                CAST(s.longitude AS DOUBLE PRECISION) AS longitude,
+                s.latitude::float8  AS latitude,
+                s.longitude::float8 AS longitude,
                 s.category,
-                CAST(ROUND(AVG(r.star)::numeric, 1) AS DOUBLE PRECISION) AS rating,
+                ROUND(AVG(r.star)::numeric, 1)::float8 AS rating,
                 bm.carbs,
                 bm.protein,
                 bm.fat,
@@ -56,8 +57,8 @@ public class StoreQueryRepository {
                          m.menu_id
                 LIMIT 1
             ) bm ON TRUE
-            WHERE CAST(s.latitude  AS DOUBLE PRECISION) BETWEEN :swLat AND :neLat
-              AND CAST(s.longitude AS DOUBLE PRECISION) BETWEEN :swLng AND :neLng
+            WHERE s.latitude  BETWEEN :swLat AND :neLat
+              AND s.longitude BETWEEN :swLng AND :neLng
               AND (:category IS NULL OR s.category = :category)
               AND (
                   :keywordLike IS NULL
@@ -94,10 +95,10 @@ public class StoreQueryRepository {
 
     public List<StoreMarkerResponse> searchStoreMarkers(StoreSearchRequest req) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("swLat", req.getSwLat())
-                .addValue("neLat", req.getNeLat())
-                .addValue("swLng", req.getSwLng())
-                .addValue("neLng", req.getNeLng())
+                .addValue("swLat", BigDecimal.valueOf(req.getSwLat()))
+                .addValue("neLat", BigDecimal.valueOf(req.getNeLat()))
+                .addValue("swLng", BigDecimal.valueOf(req.getSwLng()))
+                .addValue("neLng", BigDecimal.valueOf(req.getNeLng()))
                 .addValue("category", req.getCategory(), Types.VARCHAR)
                 .addValue("keywordLike", toKeywordLike(req.getKeyword()), Types.VARCHAR);
 
