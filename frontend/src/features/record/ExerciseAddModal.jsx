@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BottomSheet from '../../components/BottomSheet.jsx'
 
 export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoading = false, onAdd }) {
   const [selected, setSelected] = useState(null)
@@ -27,11 +28,8 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoa
   }
 
   return (
-    <div
-      className="fixed inset-0 z-modal bg-black/40 flex items-end"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full bg-white rounded-t-3xl px-6 pt-6 pb-10 flex flex-col gap-6 max-h-[90dvh] overflow-y-auto">
+    <BottomSheet onClose={onClose} defaultExpanded>
+      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 flex flex-col gap-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold font-headline text-on-surface">운동 기록하기</h2>
@@ -115,6 +113,6 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoa
           {saving ? '저장 중...' : '기록 완료하기'}
         </button>
       </div>
-    </div>
+    </BottomSheet>
   )
 }

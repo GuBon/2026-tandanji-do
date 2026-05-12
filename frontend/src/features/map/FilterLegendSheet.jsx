@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import BottomSheet from '../../components/BottomSheet.jsx'
 
 const GRADE_LEGEND = [
   { emoji: '🟢', name: '균형 식단', desc: '근육을 키우고 체지방은 줄이는 조합', border: '#4ADE80' },
@@ -39,91 +39,40 @@ function TagRow({ item }) {
 }
 
 export default function FilterLegendSheet({ onClose }) {
-  const [translateY, setTranslateY] = useState(0)
-  const dragStartY = useRef(null)
-  const isDragging = useRef(false)
-  const currentDelta = useRef(0)
-
-  const startDrag = (clientY) => {
-    dragStartY.current = clientY
-    isDragging.current = true
-  }
-  const moveDrag = (clientY) => {
-    if (!isDragging.current) return
-    const delta = clientY - dragStartY.current
-    if (delta > 0) { currentDelta.current = delta; setTranslateY(delta) }
-  }
-  const endDrag = () => {
-    if (!isDragging.current) return
-    isDragging.current = false
-    if (currentDelta.current > 100) { onClose() }
-    else { currentDelta.current = 0; setTranslateY(0) }
-  }
-
-  useEffect(() => {
-    const onMove = (e) => moveDrag(e.clientY)
-    const onUp = () => endDrag()
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-  }, [])
-
   return (
-    <div
-      className="fixed inset-0 z-modal bg-black/30 backdrop-blur-sm flex items-end"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full bg-white rounded-t-3xl flex flex-col max-h-[75dvh]"
-        style={{ transform: `translateY(${translateY}px)`, transition: isDragging.current ? 'none' : 'transform 0.25s ease' }}
-      >
-        {/* 드래그 핸들 */}
-        <div
-          className="flex justify-center pt-3 pb-1 cursor-grab select-none shrink-0"
-          onTouchStart={(e) => startDrag(e.touches[0].clientY)}
-          onTouchMove={(e) => moveDrag(e.touches[0].clientY)}
-          onTouchEnd={endDrag}
-          onMouseDown={(e) => startDrag(e.clientY)}
+    <BottomSheet onClose={onClose}>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between px-6 pt-2 pb-3 shrink-0">
+        <div>
+          <h2 className="text-base font-bold font-headline text-on-surface">필터 안내</h2>
+          <p className="text-xs text-on-surface-variant mt-0.5">마커 색상과 태그의 의미를 알려드려요</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container rounded-full transition-colors text-lg"
         >
-          <div className="w-10 h-1 bg-outline-variant/40 rounded-full" />
+          ×
+        </button>
+      </div>
+
+      {/* 콘텐츠 */}
+      <div className="flex-1 overflow-y-auto px-6 pb-10 flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">마커 색상</p>
+          <div className="flex flex-col gap-0.5">
+            {GRADE_LEGEND.map((item) => <GradeRow key={item.name} item={item} />)}
+          </div>
         </div>
 
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-6 pt-2 pb-3 shrink-0">
-          <div>
-            <h2 className="text-base font-bold font-headline text-on-surface">필터 안내</h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">마커 색상과 태그의 의미를 알려드려요</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container rounded-full transition-colors text-lg"
-          >
-            ×
-          </button>
-        </div>
+        <div className="h-px bg-outline-variant/20" />
 
-        {/* 콘텐츠 */}
-        <div className="flex-1 overflow-y-auto px-6 pb-10 flex flex-col gap-6">
-          {/* Grade 섹션 */}
-          <div className="flex flex-col gap-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">마커 색상</p>
-            <div className="flex flex-col gap-0.5">
-              {GRADE_LEGEND.map((item) => <GradeRow key={item.name} item={item} />)}
-            </div>
-          </div>
-
-          {/* 구분선 */}
-          <div className="h-px bg-outline-variant/20" />
-
-          {/* Tag 섹션 */}
-          <div className="flex flex-col gap-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">영양소 태그</p>
-            <div className="flex flex-col gap-0.5">
-              {TAG_LEGEND.map((item) => <TagRow key={item.name} item={item} />)}
-            </div>
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">영양소 태그</p>
+          <div className="flex flex-col gap-0.5">
+            {TAG_LEGEND.map((item) => <TagRow key={item.name} item={item} />)}
           </div>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }

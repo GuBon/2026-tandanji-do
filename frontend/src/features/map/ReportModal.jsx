@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../../components/Button.jsx'
+import BottomSheet from '../../components/BottomSheet.jsx'
 import ImageUploader from '../../components/ImageUploader.jsx'
 import { useReport } from './useReport.js'
 import { useKakaoPlaceSearch } from './useKakaoPlaceSearch.js'
@@ -64,150 +65,135 @@ export default function ReportModal({ onClose }) {
 
   const showDropdown = !form.storeAddress && (searching || results.length > 0 || !!searchError)
 
-  const handleSubmit = async () => {
-    await submit(imageUrl)
-  }
-
   return (
-    <>
-      <div className="fixed inset-0 z-modal bg-black/40" onClick={onClose} />
+    <BottomSheet onClose={onClose} defaultExpanded>
+      <div className="flex-1 overflow-y-auto px-6 pt-7 pb-10 flex flex-col gap-6">
 
-      <div className="fixed bottom-0 left-0 right-0 z-modal bg-white rounded-t-3xl max-h-[92dvh] overflow-y-auto">
-        <div className="px-6 pt-7 pb-10 flex flex-col gap-6">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-[28px] font-bold text-gray-800 leading-tight">정보 제보하기</h2>
+          <p className="text-sm text-gray-500 leading-snug">
+            임상 큐레이터를 위해 정확한 식품 정보를 공유해 주세요.
+          </p>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <h2 className="text-[28px] font-bold text-gray-800 leading-tight">정보 제보하기</h2>
-            <p className="text-sm text-gray-500 leading-snug">
-              임상 큐레이터를 위해 정확한 식품 정보를 공유해 주세요.
-            </p>
-          </div>
-
-          {/* 매장명 검색 */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-bold text-gray-800">
-              매장명 <span className="font-normal text-gray-400">(STORE NAME)</span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="매장명으로 검색..."
-                value={form.storeName}
-                onChange={handleStoreInput}
-                className="w-full h-[58px] px-5 pr-12 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-              {form.storeName && (
-                <button
-                  type="button"
-                  onClick={handleClearPlace}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-xs leading-none"
-                  aria-label="초기화"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* 검색 결과 드롭다운 */}
-            {showDropdown && (
-              <ul className="rounded-2xl border border-gray-100 bg-white shadow-md max-h-[220px] overflow-y-auto">
-                {searching && results.length === 0 && !searchError && (
-                  <li className="px-4 py-3 text-sm text-gray-400">검색 중...</li>
-                )}
-                {searchError && (
-                  <li className="px-4 py-3 text-sm text-red-500">{searchError}</li>
-                )}
-                {results.map((r) => (
-                  <li
-                    key={r.id}
-                    onClick={() => handleSelectPlace(r)}
-                    className="px-4 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer active:bg-gray-50"
-                  >
-                    <div className="text-sm font-medium text-gray-800">{r.placeName}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{r.address}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* 선택된 주소 표시 */}
-            {form.storeAddress && (
-              <div className="flex items-start gap-2 px-4 py-2.5 rounded-xl bg-emerald-50">
-                <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1C4.79 1 3 2.79 3 5c0 3 4 8 4 8s4-5 4-8c0-2.21-1.79-4-4-4z" fill="#10b981" />
-                  <circle cx="7" cy="5" r="1.5" fill="white" />
-                </svg>
-                <span className="text-xs text-emerald-700 leading-relaxed">{form.storeAddress}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-bold text-gray-800">
-              메뉴명 <span className="font-normal text-gray-400">(MENU NAME)</span>
-            </label>
+        {/* 매장명 검색 */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-gray-800">
+            매장명 <span className="font-normal text-gray-400">(STORE NAME)</span>
+          </label>
+          <div className="relative">
             <input
               type="text"
-              placeholder="예: 칠리 베이컨 윔볼"
-              value={form.menuName}
-              onChange={setField('menuName')}
-              className="w-full h-[58px] px-5 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
+              placeholder="매장명으로 검색..."
+              value={form.storeName}
+              onChange={handleStoreInput}
+              className="w-full h-[58px] px-5 pr-12 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
             />
+            {form.storeName && (
+              <button
+                type="button"
+                onClick={handleClearPlace}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-xs leading-none"
+                aria-label="초기화"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-bold text-gray-800">
-              영양성분 정보 <span className="font-normal text-gray-400">(NUTRITIONAL INFO)</span>
-            </label>
-            <div className="flex flex-col gap-2">
-              {NUTRITION_ROWS.map(({ key, Icon, label, sub }) => (
-                <div key={key} className="h-[62px] px-4 rounded-2xl bg-surface-container-low flex items-center gap-3">
-                  <Icon />
-                  <span className="flex-1 text-xs text-gray-500">
-                    {label} <span className="text-gray-400">({sub})</span>
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={form[key]}
-                    onChange={setField(key)}
-                    className="w-14 text-right text-[26px] font-light text-gray-700 bg-transparent outline-none"
-                  />
-                  <span className="text-base font-medium text-gray-500">g</span>
-                </div>
+          {showDropdown && (
+            <ul className="rounded-2xl border border-gray-100 bg-white shadow-md max-h-[220px] overflow-y-auto">
+              {searching && results.length === 0 && !searchError && (
+                <li className="px-4 py-3 text-sm text-gray-400">검색 중...</li>
+              )}
+              {searchError && (
+                <li className="px-4 py-3 text-sm text-red-500">{searchError}</li>
+              )}
+              {results.map((r) => (
+                <li
+                  key={r.id}
+                  onClick={() => handleSelectPlace(r)}
+                  className="px-4 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer active:bg-gray-50"
+                >
+                  <div className="text-sm font-medium text-gray-800">{r.placeName}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{r.address}</div>
+                </li>
               ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-bold text-gray-800">
-              이미지 첨부 <span className="font-normal text-gray-400">(선택)</span>
-            </label>
-            <ImageUploader
-              domain="reports"
-              onChange={setImageUrl}
-              aspectRatio="16/9"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
+            </ul>
           )}
 
-          <p className="text-xs text-gray-400 leading-relaxed">
-            이미지를 함께 첨부하면 검수 과정이 더욱 빨라집니다.
-            지속적인 허위 제보 시 서비스 이용이 제한될 수 있습니다.
-          </p>
+          {form.storeAddress && (
+            <div className="flex items-start gap-2 px-4 py-2.5 rounded-xl bg-emerald-50">
+              <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1C4.79 1 3 2.79 3 5c0 3 4 8 4 8s4-5 4-8c0-2.21-1.79-4-4-4z" fill="#10b981" />
+                <circle cx="7" cy="5" r="1.5" fill="white" />
+              </svg>
+              <span className="text-xs text-emerald-700 leading-relaxed">{form.storeAddress}</span>
+            </div>
+          )}
+        </div>
 
-          <div className="flex gap-3">
-            <Button variant="sheet-cancel" onClick={onClose} disabled={loading}>취소</Button>
-            <Button variant="sheet-confirm" onClick={handleSubmit} disabled={loading}>
-              {loading ? '제보 중...' : '제보하기'}
-            </Button>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-gray-800">
+            메뉴명 <span className="font-normal text-gray-400">(MENU NAME)</span>
+          </label>
+          <input
+            type="text"
+            placeholder="예: 칠리 베이컨 윔볼"
+            value={form.menuName}
+            onChange={setField('menuName')}
+            className="w-full h-[58px] px-5 rounded-2xl bg-surface-container-low text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-300"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-gray-800">
+            영양성분 정보 <span className="font-normal text-gray-400">(NUTRITIONAL INFO)</span>
+          </label>
+          <div className="flex flex-col gap-2">
+            {NUTRITION_ROWS.map(({ key, Icon, label, sub }) => (
+              <div key={key} className="h-[62px] px-4 rounded-2xl bg-surface-container-low flex items-center gap-3">
+                <Icon />
+                <span className="flex-1 text-xs text-gray-500">
+                  {label} <span className="text-gray-400">({sub})</span>
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form[key]}
+                  onChange={setField(key)}
+                  className="w-14 text-right text-[26px] font-light text-gray-700 bg-transparent outline-none"
+                />
+                <span className="text-base font-medium text-gray-500">g</span>
+              </div>
+            ))}
           </div>
+        </div>
 
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-gray-800">
+            이미지 첨부 <span className="font-normal text-gray-400">(선택)</span>
+          </label>
+          <ImageUploader domain="reports" onChange={setImageUrl} aspectRatio="16/9" />
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
+        )}
+
+        <p className="text-xs text-gray-400 leading-relaxed">
+          이미지를 함께 첨부하면 검수 과정이 더욱 빨라집니다.
+          지속적인 허위 제보 시 서비스 이용이 제한될 수 있습니다.
+        </p>
+
+        <div className="flex gap-3">
+          <Button variant="sheet-cancel" onClick={onClose} disabled={loading}>취소</Button>
+          <Button variant="sheet-confirm" onClick={() => submit(imageUrl)} disabled={loading}>
+            {loading ? '제보 중...' : '제보하기'}
+          </Button>
         </div>
       </div>
-    </>
+    </BottomSheet>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../../components/Button.jsx'
+import BottomSheet from '../../components/BottomSheet.jsx'
 import FilterLegendSheet from './FilterLegendSheet.jsx'
 
 const GRADES = [
@@ -52,15 +53,6 @@ function NutrientSlider({ label, sub, sliderMax, minVal, maxVal, onMinChange, on
   const minPct = (minVal / sliderMax) * 100
   const maxPct = (maxVal / sliderMax) * 100
 
-  const handleMin = (e) => {
-    const v = Number(e.target.value)
-    if (v < maxVal) onMinChange(v)
-  }
-  const handleMax = (e) => {
-    const v = Number(e.target.value)
-    if (v > minVal) onMaxChange(v)
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -71,15 +63,20 @@ function NutrientSlider({ label, sub, sliderMax, minVal, maxVal, onMinChange, on
           {minVal}g - {maxVal}g
         </span>
       </div>
-
       <div className="relative h-6 flex items-center">
         <div className="absolute inset-x-0 h-[3px] rounded-full bg-gray-200" />
         <div
           className="absolute h-[3px] rounded-full bg-primary/30"
           style={{ left: `${minPct}%`, width: `${maxPct - minPct}%` }}
         />
-        <input type="range" min={0} max={sliderMax} value={minVal} onChange={handleMin} className={THUMB} />
-        <input type="range" min={0} max={sliderMax} value={maxVal} onChange={handleMax} className={THUMB} />
+        <input type="range" min={0} max={sliderMax} value={minVal}
+          onChange={(e) => { const v = Number(e.target.value); if (v < maxVal) onMinChange(v) }}
+          className={THUMB}
+        />
+        <input type="range" min={0} max={sliderMax} value={maxVal}
+          onChange={(e) => { const v = Number(e.target.value); if (v > minVal) onMaxChange(v) }}
+          className={THUMB}
+        />
       </div>
     </div>
   )
@@ -111,14 +108,7 @@ export default function FilterBottomSheet({
 
   return (
     <>
-      <div className="fixed inset-0 z-modal bg-black/40" onClick={onClose} />
-
-      <div className="fixed bottom-0 left-0 right-0 z-modal bg-white rounded-t-3xl max-h-[92dvh] flex flex-col">
-        {/* Pull Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
-        </div>
-
+      <BottomSheet onClose={onClose} defaultExpanded>
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pt-3 pb-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -140,7 +130,6 @@ export default function FilterBottomSheet({
 
         {/* 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto px-6 flex flex-col gap-6 pb-4">
-          {/* 매장 등급 */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">매장 등급</span>
             <div className="flex gap-2">
@@ -164,7 +153,6 @@ export default function FilterBottomSheet({
             </div>
           </div>
 
-          {/* 영양소 태그 */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">영양소 태그</span>
             <div className="flex gap-2">
@@ -188,10 +176,8 @@ export default function FilterBottomSheet({
             </div>
           </div>
 
-          {/* 구분선 */}
           <div className="h-px bg-gray-100" />
 
-          {/* 영양성분 상세 */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">영양성분 상세</span>
             <div className="flex flex-col gap-8 pt-2">
@@ -211,12 +197,12 @@ export default function FilterBottomSheet({
           </div>
         </div>
 
-        {/* 버튼 */}
+        {/* 하단 버튼 */}
         <div className="px-6 py-4 pb-10 flex gap-3 shrink-0 border-t border-gray-100">
           <Button variant="sheet-cancel" onClick={handleReset}>초기화</Button>
           <Button variant="sheet-confirm" onClick={handleApply}>적용하기</Button>
         </div>
-      </div>
+      </BottomSheet>
 
       {legendOpen && <FilterLegendSheet onClose={() => setLegendOpen(false)} />}
     </>
