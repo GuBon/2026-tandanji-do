@@ -24,7 +24,7 @@ const CameraIcon = () => (
  *   4. 업로드 중 스피너 오버레이
  *   5. ✕ 버튼으로 이미지 제거 → onChange(null) 호출
  */
-export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', className = '' }) {
+export default function ImageUploader({ domain, onChange, onFile, aspectRatio = '4/3', className = '' }) {
   const [preview, setPreview] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -34,6 +34,7 @@ export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', c
     if (!file) return
     setError(null)
     setPreview(URL.createObjectURL(file))
+    onFile?.(file)
     setUploading(true)
     try {
       const url = await uploadImage(file, domain)
@@ -41,11 +42,12 @@ export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', c
     } catch {
       setError('이미지 업로드에 실패했습니다.')
       setPreview(null)
+      onFile?.(null)
       onChange?.(null)
     } finally {
       setUploading(false)
     }
-  }, [domain, onChange])
+  }, [domain, onChange, onFile])
 
   const handleRemove = useCallback((e) => {
     e.stopPropagation()
@@ -53,7 +55,8 @@ export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', c
     setError(null)
     if (inputRef.current) inputRef.current.value = ''
     onChange?.(null)
-  }, [onChange])
+    onFile?.(null)
+  }, [onChange, onFile])
 
   return (
     <div className={className}>
@@ -65,11 +68,12 @@ export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', c
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="relative w-full bg-surface-container-low rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden transition-colors hover:border-primary/40 disabled:cursor-not-allowed"
+      <div
+        role="button"
+        tabIndex={uploading ? -1 : 0}
+        onClick={uploading ? undefined : () => inputRef.current?.click()}
+        onKeyDown={(e) => { if (!uploading && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click() }}
+        className={`relative w-full bg-surface-container-low rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden transition-colors hover:border-primary/40 ${uploading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         style={{ aspectRatio }}
       >
         {preview ? (
@@ -103,7 +107,7 @@ export default function ImageUploader({ domain, onChange, aspectRatio = '4/3', c
             <p className="text-sm text-gray-400">사진을 추가하려면 탭하세요</p>
           </div>
         )}
-      </button>
+      </div>
 
       {error && (
         <p className="text-xs text-red-500 mt-1.5 px-1">{error}</p>

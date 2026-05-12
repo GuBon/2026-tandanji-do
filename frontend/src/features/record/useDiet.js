@@ -13,6 +13,7 @@ function toStoreShape(log) {
     fat: log.logFat || 0,
     mealType: log.mealType,
     time: new Date(log.ateAt),
+    imgUrl: log.imgUrl ?? null,
   }
 }
 

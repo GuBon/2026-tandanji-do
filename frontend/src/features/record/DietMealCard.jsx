@@ -16,8 +16,12 @@ export default function DietMealCard({ meal, onRemove }) {
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-outline-variant/10">
       <div className="flex items-center p-4 gap-4">
         {/* 썸네일 */}
-        <div className="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center text-3xl shrink-0">
-          {meal.emoji ?? '🍽️'}
+        <div className="w-16 h-16 rounded-xl bg-surface-container shrink-0 overflow-hidden flex items-center justify-center">
+          {meal.imgUrl ? (
+            <img src={meal.imgUrl} alt={meal.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-3xl">{meal.emoji ?? '🍽️'}</span>
+          )}
         </div>
 
         {/* 내용 */}
