@@ -111,6 +111,14 @@ async function fetchTransit(originLat, originLon, destLat, destLon, signal) {
           allCoords.push([lon, lat])
         }
       })
+    } else {
+      // passShape 없는 leg(주로 도보) → 시작/끝 직선 폴백
+      const sLon = Number(leg.start?.lon), sLat = Number(leg.start?.lat)
+      const eLon = Number(leg.end?.lon),   eLat = Number(leg.end?.lat)
+      if (!Number.isNaN(sLon) && !Number.isNaN(sLat) && !Number.isNaN(eLon) && !Number.isNaN(eLat)) {
+        coords.push([sLon, sLat], [eLon, eLat])
+        allCoords.push([sLon, sLat], [eLon, eLat])
+      }
     }
     return {
       mode:          leg.mode ?? 'WALK',

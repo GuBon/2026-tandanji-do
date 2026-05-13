@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toLonLat } from 'ol/proj'
 import useMapStore from '../../store/useMapStore.js'
 import { getRecommendations, analyzeNutrition } from '../../api/chatbotApi.js'
 import { createDietLog, toLocalDateTimeStr } from '../../api/recordApi.js'
@@ -7,7 +8,7 @@ import { uploadImage } from '../../api/imageApi.js'
 const INITIAL_MESSAGE = {
   id: 'init',
   role: 'assistant',
-  text: '안녕하세요! \n당신의 건강을 위한 AI탄단지봇 입니다.\n날씨나, 조건에 따라 현재 위치 주변의 건강한 메뉴를 추천해드릴게요.\n원하시는 식단이나 영양소를 입력하거나, 음식 사진을 올려 영양성분을 분석해보세요.',
+  text: '안녕하세요! \n당신의 건강을 위한 AI탄단지봇 입니다.\n날씨나, 조건에 따라 주변의 건강한 메뉴를 추천해드릴게요.\n음식 사진의 영양성분을 분석해보세요.',
 }
 
 function getMealType() {
@@ -48,7 +49,7 @@ export function useChatbot() {
   const [loading, setLoading] = useState(false)
   const [pendingDietItems, setPendingDietItems] = useState(null)
 
-  const latLon = useMapStore((s) => s.latLon)
+  const center = useMapStore((s) => s.center)
   const weather = useMapStore((s) => s.weather)
   const temperature = useMapStore((s) => s.temperature)
 
@@ -120,16 +121,17 @@ export function useChatbot() {
 
     setLoading(true)
 
-    if (!latLon?.lat || !latLon?.lon) {
+    if (!center) {
       addAssistant('위치 정보가 없어요. 지도 화면에서 현재 위치를 먼저 설정해 주세요.')
       setLoading(false)
       return
     }
 
     try {
+      const [lng, lat] = toLonLat(center)
       const data = await getRecommendations({
-        lat: latLon.lat,
-        lng: latLon.lon,
+        lat,
+        lng,
         weather,
         temperature,
         message: text,

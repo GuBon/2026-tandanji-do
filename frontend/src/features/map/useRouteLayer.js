@@ -16,11 +16,11 @@ const STROKE = {
 
 // 대중교통 수단별 색상
 const TRANSIT_STROKE = {
-  WALK:   { color: '#9CA3AF', width: 3 }, // gray (점선 효과용 얇게)
-  BUS:    { color: '#3B82F6', width: 5 }, // blue
-  SUBWAY: { color: '#F97316', width: 5 }, // orange
-  TRAM:   { color: '#8B5CF6', width: 5 }, // violet
-  FERRY:  { color: '#06B6D4', width: 5 }, // cyan
+  WALK:   { color: '#1F2937', width: 3, lineDash: [8, 5] }, // black 점선
+  BUS:    { color: '#3B82F6', width: 5 },                   // blue
+  SUBWAY: { color: '#EF4444', width: 5 },                   // red
+  TRAM:   { color: '#8B5CF6', width: 5 },                   // violet
+  FERRY:  { color: '#06B6D4', width: 5 },                   // cyan
 }
 
 let routeLayerSeq = 0
@@ -55,7 +55,15 @@ function makeTransitLayer(legs, id) {
     source: new VectorSource({ features }),
     style: (feature) => {
       const s = feature.get('stroke')
-      return new Style({ stroke: new Stroke({ ...s, lineCap: 'round', lineJoin: 'round' }) })
+      return new Style({
+        stroke: new Stroke({
+          color: s.color,
+          width: s.width,
+          lineDash: s.lineDash ?? undefined,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }),
+      })
     },
     zIndex: 25,
   })

@@ -4,8 +4,19 @@ import useMapStore from '../../store/useMapStore'
 
 const GEO_API = 'https://mapprime.synology.me:15289/geolocation/api'
 
+async function fetchWithTimeout(url, options = {}, ms = 4000) {
+  const ctrl = new AbortController()
+  const id = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 async function fetchPublicIp() {
-  const res = await fetch('https://api.ipify.org?format=json')
+  const res = await fetchWithTimeout('https://api.ipify.org?format=json', {}, 3000)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const { ip } = await res.json()
   return ip
 }
@@ -18,9 +29,16 @@ function makeHeaders(publicIp) {
 }
 
 async function fetchRestLocation(publicIp) {
-  const res = await fetch(`${GEO_API}/location`, { headers: makeHeaders(publicIp) })
+  const res = await fetchWithTimeout(`${GEO_API}/location`, { headers: makeHeaders(publicIp) }, 4000)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const { lngLat } = await res.json()
+  if (
+    !lngLat ||
+    typeof lngLat.lng !== 'number' || !isFinite(lngLat.lng) ||
+    typeof lngLat.lat !== 'number' || !isFinite(lngLat.lat)
+  ) {
+    throw new Error('invalid lngLat')
+  }
   return lngLat // { lng, lat }
 }
 
@@ -53,40 +71,32 @@ export function useGeolocation() {
       console.warn('[useGeolocation] 공인 IP 조회 실패')
     }
 
-    if (navigator.geolocation) {
-      // 1순위: GPS
-      navigator.geolocation.getCurrentPosition(
-        async ({ coords }) => {
-          const { longitude: lng, latitude: lat, accuracy } = coords
-          applyLocation(lng, lat)
-          if (publicIp) {
-            try { await postGpsLocation(publicIp, lng, lat, accuracy) } catch { /* noop */ }
-          }
-        },
-        async (err) => {
-          // GPS 거부/실패 → REST fallback
-          console.warn('[useGeolocation] GPS 실패:', err.message)
-          if (!publicIp) return
-          try {
-            const { lng, lat } = await fetchRestLocation(publicIp)
-            applyLocation(lng, lat)
-          } catch (e) {
-            console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
-          }
-        },
-        { timeout: 8000, enableHighAccuracy: true },
-      )
-      return
+    // 1순위: REST API
+    if (publicIp) {
+      try {
+        const { lng, lat } = await fetchRestLocation(publicIp)
+        applyLocation(lng, lat)
+        return
+      } catch (e) {
+        console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
+      }
     }
 
-    // GPS API 없음 → REST fallback
-    if (!publicIp) return
-    try {
-      const { lng, lat } = await fetchRestLocation(publicIp)
-      applyLocation(lng, lat)
-    } catch (e) {
-      console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
-    }
+    // 2순위: GPS fallback
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const { longitude: lng, latitude: lat, accuracy } = coords
+        applyLocation(lng, lat)
+        if (publicIp) {
+          try { await postGpsLocation(publicIp, lng, lat, accuracy) } catch { /* noop */ }
+        }
+      },
+      (err) => {
+        console.warn('[useGeolocation] GPS 실패:', err.message)
+      },
+      { timeout: 8000, enableHighAccuracy: true },
+    )
   }, [applyLocation])
 
   return { locate }
