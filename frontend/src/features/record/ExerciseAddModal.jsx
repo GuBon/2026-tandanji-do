@@ -6,12 +6,14 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoa
   const [duration, setDuration] = useState('')
   const [detail, setDetail] = useState('')
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   const handleSubmit = async () => {
     if (!selected || !duration) return
     const type = exerciseTypes.find((t) => t.typeId === selected)
     if (!type) return
     setSaving(true)
+    setSaveError(null)
     try {
       await onAdd({
         typeId: type.typeId,
@@ -21,7 +23,7 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoa
       })
       onClose()
     } catch {
-      // 에러는 상위 훅에서 처리
+      setSaveError('저장에 실패했습니다. 다시 시도해주세요.')
     } finally {
       setSaving(false)
     }
@@ -103,6 +105,10 @@ export default function ExerciseAddModal({ onClose, exerciseTypes = [], typesLoa
             className="bg-surface-container-low rounded-2xl px-5 py-4 text-sm text-on-surface outline-none resize-none placeholder:text-outline-variant"
           />
         </div>
+
+        {saveError && (
+          <p className="text-sm text-red-500 text-center">{saveError}</p>
+        )}
 
         {/* 제출 버튼 */}
         <button
