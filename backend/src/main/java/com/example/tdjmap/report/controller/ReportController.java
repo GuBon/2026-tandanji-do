@@ -3,6 +3,9 @@ package com.example.tdjmap.report.controller;
 import com.example.tdjmap.common.ApiResponse;
 import com.example.tdjmap.report.dto.ReportAdminResponse;
 import com.example.tdjmap.report.dto.ReportCreateRequest;
+import com.example.tdjmap.report.dto.ReportPublicResponse;
+import com.example.tdjmap.report.dto.ReportVoteRequest;
+import com.example.tdjmap.report.dto.ReportVoteResponse;
 import com.example.tdjmap.report.service.ReportService;
 import com.example.tdjmap.report.dto.ReportStatusRequest;
 import jakarta.validation.Valid;
@@ -23,6 +26,19 @@ public class ReportController {
             @Valid @RequestBody ReportCreateRequest req) {
         reportService.createReport(req);
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @GetMapping("/reports")
+    public ResponseEntity<ApiResponse<List<ReportPublicResponse>>> getPublicReports(
+            @RequestParam(required = false) Long storeId) {
+        return ResponseEntity.ok(ApiResponse.ok(reportService.getPublicReports(storeId)));
+    }
+
+    @PostMapping("/reports/{reportId}/vote")
+    public ResponseEntity<ApiResponse<ReportVoteResponse>> vote(
+            @PathVariable Long reportId,
+            @Valid @RequestBody ReportVoteRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(reportService.toggleVote(reportId, req.getVoteType())));
     }
 
     @GetMapping("/admin/reports")
