@@ -4,6 +4,7 @@ import Header from '../../components/Header.jsx'
 import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import { useAuthRequired } from '../../hooks/useAuthRequired.js'
 import { fetchPost, fetchPostLikeStatus, togglePostLike } from '../../api/postApi.js'
+import PostComments from './PostComments.jsx'
 
 const BackIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -126,12 +127,14 @@ export default function PostDetailPage() {
                   : 'bg-gray-100 text-gray-600',
               ].join(' ')}
             >
-              좋아요 {likeState?.likeCount ?? post.likeCount ?? 0}
+              ♡ {likeState?.likeCount ?? post.likeCount ?? 0}
             </button>
 
             {error && (
               <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
             )}
+
+            <PostComments postId={id} />
           </article>
         )}
       </main>

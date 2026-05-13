@@ -44,3 +44,25 @@ export async function togglePostLike(postId) {
   const { data } = await res.json()
   return data
 }
+
+export async function fetchComments(postId) {
+  const res = await apiClient(`/posts/${postId}/comments`)
+  if (!res.ok) throw new Error(res.status)
+  const { data } = await res.json()
+  return data
+}
+
+export async function createComment(postId, content) {
+  const res = await apiClient(`/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+  if (!res.ok) throw new Error(res.status)
+  const { data } = await res.json()
+  return data
+}
+
+export async function deleteComment(postId, commentId) {
+  const res = await apiClient(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(res.status)
+}
