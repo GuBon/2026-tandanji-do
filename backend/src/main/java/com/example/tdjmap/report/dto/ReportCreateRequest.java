@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ReportCreateRequest {
 
+    private Long storeId;
+
     @NotBlank
     private String storeName;
 
