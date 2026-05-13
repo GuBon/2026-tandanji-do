@@ -13,16 +13,18 @@ function deriveTagsFromMacro(carbs, protein, fat) {
 function normalizeMarker(raw) {
   const { carbs, protein, fat, nutritionGrade } = raw.markerMacro ?? {}
   const nutritionTags = raw.markerMacro?.nutritionTags
+  const lr = raw.latestReportMacro
   return {
-    id:        raw.storeId,
-    name:      raw.storeName,
-    address:   raw.address,
-    lat:       raw.latitude,
-    lon:       raw.longitude,
-    category:  raw.category,
-    rating:    raw.rating ?? null,
-    grade:     nutritionGrade ?? null,
-    tags:      nutritionTags?.length ? nutritionTags : deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
+    id:           raw.storeId,
+    name:         raw.storeName,
+    address:      raw.address,
+    lat:          raw.latitude,
+    lon:          raw.longitude,
+    category:     raw.category,
+    brandLogoUrl: raw.brandLogoUrl ?? null,
+    rating:       raw.rating ?? null,
+    grade:        nutritionGrade ?? null,
+    tags:         nutritionTags?.length ? nutritionTags : deriveTagsFromMacro(carbs ?? 0, protein ?? 0, fat ?? 0),
     nutrition: {
       carbs:   carbs   != null ? `${carbs}g`   : '--',
       protein: protein != null ? `${protein}g` : '--',
@@ -33,6 +35,12 @@ function normalizeMarker(raw) {
       protein: protein ?? null,
       fat:     fat     ?? null,
     },
+    reportCount: raw.reportCount ?? 0,
+    latestReport: lr ? {
+      carbs:   lr.carbs   != null ? `${lr.carbs}g`   : '--',
+      protein: lr.protein != null ? `${lr.protein}g` : '--',
+      fat:     lr.fat     != null ? `${lr.fat}g`     : '--',
+    } : null,
   }
 }
 
@@ -44,7 +52,7 @@ function normalizeStoreDetail(rawDetail, rawMenus) {
     address:   rawDetail.address,
     lat:       rawDetail.latitude,
     lon:       rawDetail.longitude,
-    image:     rawDetail.imageUrl ?? rawDetail.brand?.logoUrl ?? null,
+    image:     rawDetail.imageUrl ?? null,
     rating:    rawDetail.rating ?? null,
     grade:     null,
     tags:      [],

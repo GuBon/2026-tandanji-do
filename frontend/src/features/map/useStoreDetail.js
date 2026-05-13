@@ -5,11 +5,13 @@ import {
   fetchStoreWithMenus,
   toggleStoreReviewLike,
 } from '../../api/storeApi.js'
+import { fetchMenuReports, voteOnReport } from '../../api/reportApi.js'
 import { useStoreDistance } from './useStoreDistance.js'
 
 export function useStoreDetail(storeId) {
   const [baseStore, setBaseStore] = useState(null)
   const [reviews, setReviews] = useState([])
+  const [menuReports, setMenuReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -21,11 +23,13 @@ export function useStoreDetail(storeId) {
     Promise.all([
       fetchStoreWithMenus(Number(storeId)),
       fetchStoreReviews(Number(storeId)).catch(() => []),
+      fetchMenuReports(Number(storeId)).catch(() => []),
     ])
-      .then(([storeData, reviewData]) => {
+      .then(([storeData, reviewData, reportData]) => {
         if (cancelled) return
         setBaseStore(storeData)
         setReviews(reviewData ?? [])
+        setMenuReports(reportData ?? [])
       })
       .catch((e) => {
         if (!cancelled) setError(e.message)
@@ -56,5 +60,18 @@ export function useStoreDetail(storeId) {
     return next
   }
 
-  return { store, reviews, loading, error, submitReview, toggleReviewLike }
+  const toggleMenuReportVote = async (reportId, voteType) => {
+    const next = await voteOnReport(reportId, voteType)
+    setMenuReports((prev) => prev.map((group) => ({
+      ...group,
+      reports: group.reports.map((r) =>
+        r.reportId === reportId
+          ? { ...r, upVotes: next.upVotes, downVotes: next.downVotes, myVote: next.myVote }
+          : r
+      ),
+    })))
+    return next
+  }
+
+  return { store, reviews, menuReports, loading, error, submitReview, toggleReviewLike, toggleMenuReportVote }
 }
