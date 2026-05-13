@@ -45,45 +45,43 @@ export default function StoreCard({ store, onClose, onRoute }) {
 
   return (
     <div className="absolute left-5 right-5 bottom-4 z-ui">
-      <div className="w-full bg-white rounded-[32px] shadow-lg flex items-center px-5 py-4 gap-4">
+      <div className="w-full bg-white rounded-[32px] shadow-lg flex flex-col px-5 py-4 gap-3">
 
-        {/* 가게 이미지 */}
-        <div className="w-24 h-24 rounded-2xl bg-gray-100 shrink-0 overflow-hidden">
-          {store.image
-            ? <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">사진</div>}
+        {/* 1행: 이름 + 길찾기 + 닫기 */}
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => navigate(`/map/store/${store.id}`)}
+            className="flex-1 min-w-0 text-[17px] font-bold text-gray-800 line-clamp-2 text-left hover:text-emerald-700 transition-colors leading-snug"
+          >
+            {store.name}
+          </button>
+          <div className="flex items-center gap-1 shrink-0 mt-0.5">
+            <button
+              onClick={onRoute}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-semibold hover:bg-emerald-600 transition-colors"
+            >
+              <RouteIcon />
+              길찾기
+            </button>
+            <button
+              onClick={onClose}
+              className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xl leading-none"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
-        {/* 정보 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          {/* 상단: 이름 + 버튼 행 */}
-          <div className="flex items-start gap-2">
-            <button
-              onClick={() => navigate(`/map/store/${store.id}`)}
-              className="flex-1 min-w-0 text-[17px] font-bold text-gray-800 truncate text-left hover:text-emerald-700 transition-colors leading-snug"
-            >
-              {store.name}
-            </button>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={onRoute}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-semibold hover:bg-emerald-600 transition-colors"
-              >
-                <RouteIcon />
-                길찾기
-              </button>
-              <button
-                onClick={onClose}
-                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xl leading-none"
-              >
-                ×
-              </button>
-            </div>
+        {/* 2행: 이미지 + (주소/메타/영양소) */}
+        <div className="flex items-start gap-3">
+          <div className="w-20 h-20 rounded-2xl bg-gray-100 shrink-0 overflow-hidden">
+            {store.brandLogoUrl
+              ? <img src={store.brandLogoUrl} alt={store.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">사진</div>}
           </div>
-          {/* 주소 + 거리/시간/kcal */}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             <p className="text-[12px] text-gray-400 truncate">{store.address ?? '주소 정보 없음'}</p>
-            <div className="flex items-center gap-3 mt-0.5 overflow-hidden">
+            <div className="flex items-center gap-3 overflow-hidden">
               <span className="flex items-center gap-1 text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                 <PinIcon />{store.distance ?? '--'}
               </span>
@@ -97,36 +95,33 @@ export default function StoreCard({ store, onClose, onRoute }) {
                 <StarIcon />{formatRating(store.rating)}
               </span>
             </div>
-          </div>
-
-          {/* 하단: 영양소 셀 or 정보 없음 */}
-          {store.grade ? (
-            <>
-              <div className="flex gap-2">
-                <NutritionCell label="단백질" value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
-                <NutritionCell label="탄수화물"   value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
-                <NutritionCell label="지방"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
-              </div>
-              {store.tags?.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap">
-                  {store.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+            {store.grade ? (
+              <>
+                <div className="flex gap-1.5">
+                  <NutritionCell label="단백질"   value={store.nutrition?.protein ?? '--'} className="flex-1 py-1" />
+                  <NutritionCell label="탄수화물" value={store.nutrition?.carbs   ?? '--'} className="flex-1 py-1" />
+                  <NutritionCell label="지방"     value={store.nutrition?.fat     ?? '--'} className="flex-1 py-1" />
                 </div>
-              )}
-            </>
-          ) : (
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              아직 메뉴 정보가 등록되지 않은 매장이에요
-            </p>
-          )}
+                {store.tags?.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {store.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                아직 영양성분이 등록되지 않았어요.
+              </p>
+            )}
+          </div>
         </div>
-
 
       </div>
     </div>

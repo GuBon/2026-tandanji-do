@@ -19,7 +19,7 @@ export default function MapStorePage() {
   const [sortKey, setSortKey] = useState('protein')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewError, setReviewError] = useState(null)
-  const { store, reviews, loading, error, submitReview, toggleReviewLike } = useStoreDetail(id)
+  const { store, reviews, menuReports, loading, error, submitReview, toggleReviewLike, toggleMenuReportVote } = useStoreDetail(id)
   const { requireAuth, modalOpen: authModalOpen, closeModal: closeAuthModal } = useAuthRequired()
 
   const handleShare = async () => {
@@ -49,6 +49,10 @@ export default function MapStorePage() {
 
   const handleToggleReviewLike = (reviewId) => {
     return requireAuth(() => toggleReviewLike(reviewId).catch(() => null))
+  }
+
+  const handleToggleMenuReportVote = (reportId, voteType) => {
+    return requireAuth(() => toggleMenuReportVote(reportId, voteType).catch(() => null))
   }
 
   if (loading) {
@@ -91,10 +95,12 @@ export default function MapStorePage() {
           activeTab={activeTab}
           store={store}
           reviews={reviews}
+          menuReports={menuReports}
           gradeFilter={gradeFilter}
           sortKey={sortKey}
           onCreateReview={handleCreateReview}
           onToggleReviewLike={handleToggleReviewLike}
+          onToggleMenuReportVote={handleToggleMenuReportVote}
           reviewSubmitting={reviewSubmitting}
           reviewError={reviewError}
         />

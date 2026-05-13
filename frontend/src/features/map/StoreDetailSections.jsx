@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -77,7 +77,7 @@ function gradeFilterClass(key, active) {
 
 export function StoreHero({ store, onBack, onShare }) {
   return (
-    <div className="relative w-full aspect-[4/3] bg-gray-200 shrink-0 flex items-center justify-center text-gray-300 text-sm">
+    <div className="relative w-full aspect-[16/9] bg-gray-200 shrink-0 flex items-center justify-center text-gray-300 text-sm">
       {store.image
         ? <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
         : <span>사진</span>}
@@ -99,28 +99,30 @@ export function StoreHero({ store, onBack, onShare }) {
 
 export function StoreInfoSection({ store }) {
   return (
-    <div className="px-5 pt-4 pb-3 bg-white border-b border-gray-100 shrink-0">
-      <h1 className="text-xl font-bold text-gray-900">{store.name}</h1>
-      <p className="text-sm text-gray-400 mt-0.5">{store.category}</p>
-      <div className="mt-3 flex flex-col gap-2">
+    <div className="px-5 pt-3 pb-3 bg-white border-b border-gray-100 shrink-0">
+      <h1 className="text-xl font-bold text-gray-900 leading-tight">{store.name}</h1>
+      <p className="text-xs text-gray-400 mt-0.5">{store.category}</p>
+      <div className="mt-2 flex flex-col gap-1.5">
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <PinIcon /><span>{store.address}</span>
+          <PinIcon /><span className="truncate">{store.address}</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <WalkIcon /><span>{store.distance} · 도보 {store.walkTime}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <FlameIcon /><span className="text-orange-500 font-medium">{store.kcal}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <RatingIcon />
-          <span className="font-semibold text-amber-500">{formatRating(store.rating)}</span>
-          <span className="text-gray-400">/ 5.0</span>
+        <div className="flex items-center gap-3 text-sm text-gray-600 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <WalkIcon />{store.distance} · 도보 {store.walkTime}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <FlameIcon /><span className="text-orange-500 font-medium">{store.kcal}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <RatingIcon />
+            <span className="font-semibold text-amber-500">{formatRating(store.rating)}</span>
+            <span className="text-gray-400">/ 5.0</span>
+          </span>
         </div>
       </div>
 
       {store.tags?.length > 0 && (
-        <div className="flex gap-2 flex-wrap mt-3">
+        <div className="flex gap-2 flex-wrap mt-2">
           {store.tags.map((tag) => (
             <span key={tag} className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
               #{tag}
@@ -201,51 +203,127 @@ export function MenuToolbar({ gradeFilter, onGradeChange, sortKey, onSortChange 
   )
 }
 
-function MenuItem({ menu }) {
-  const conf = GRADE_CONFIG[menu.grade]
+function MenuReportVoteRow({ report, onToggleVote }) {
+  const [optimistic, setOptimistic] = useState(null)
+  const counts = optimistic ?? { upVotes: report.upVotes, downVotes: report.downVotes, myVote: report.myVote }
+
+  const handleVote = async (type) => {
+    const newMyVote = counts.myVote === type ? null : type
+    setOptimistic({
+      upVotes:   counts.upVotes   + (type === 'UP'   ? (newMyVote ? 1 : -1) : 0),
+      downVotes: counts.downVotes + (type === 'DOWN' ? (newMyVote ? 1 : -1) : 0),
+      myVote:    newMyVote,
+    })
+    try {
+      const next = await onToggleVote(report.reportId, type)
+      if (next) setOptimistic({ upVotes: next.upVotes, downVotes: next.downVotes, myVote: next.myVote })
+    } catch {
+      setOptimistic(null)
+    }
+  }
+
   return (
-    <div
-      className="flex gap-3 px-5 py-2.5 border-b border-gray-100 last:border-0"
-      style={conf ? { borderLeft: `3px solid ${conf.border}`, backgroundColor: conf.bg } : {}}
-    >
-      <div className="w-14 h-14 rounded-xl bg-white/70 shrink-0 overflow-hidden flex items-center justify-center text-gray-300 text-xs border border-white/50">
-        {menu.imageUrl
-          ? <img src={menu.imageUrl} alt={menu.name} className="w-full h-full object-cover" />
-          : '사진'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-semibold text-gray-800 leading-snug">{menu.name}</p>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {conf && (
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${conf.badgeCls}`}>
-                {conf.label}
-              </span>
-            )}
-            {menu.price != null && menu.price > 0 && (
-              <span className="text-sm font-bold text-emerald-700">{menu.price.toLocaleString()}원</span>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 mt-0.5 leading-relaxed line-clamp-1">{menu.description}</p>
-        <div className="flex gap-1.5 mt-1.5">
-          <span className="text-xs bg-blue-50 text-blue-500 px-2.5 py-0.5 rounded-full font-semibold">탄 {menu.nutrition.carbs}</span>
-          <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full font-semibold">단 {menu.nutrition.protein}</span>
-          <span className="text-xs bg-orange-50 text-orange-500 px-2.5 py-0.5 rounded-full font-semibold">지 {menu.nutrition.fat}</span>
-        </div>
-        {menu.tags?.length > 0 && (
-          <div className="flex gap-1 flex-wrap mt-1">
-            {menu.tags.map((tag) => (
-              <span key={tag} className="text-[10px] text-gray-400 px-1.5 py-0.5 rounded-full bg-white/60 border border-gray-200">
-                #{tag}
-              </span>
-            ))}
-          </div>
+    <div className="mt-2 flex flex-col gap-1.5 bg-blue-50/60 rounded-xl px-3 py-2 border border-blue-100">
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-[10px] font-bold text-blue-600 mr-1">제보</span>
+        {report.carbs != null && (
+          <span className="text-[10px] bg-white text-blue-500 px-2 py-0.5 rounded-full border border-blue-100 font-semibold">탄 {report.carbs}g</span>
         )}
+        {report.protein != null && (
+          <span className="text-[10px] bg-white text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 font-semibold">단 {report.protein}g</span>
+        )}
+        {report.fat != null && (
+          <span className="text-[10px] bg-white text-orange-500 px-2 py-0.5 rounded-full border border-orange-100 font-semibold">지 {report.fat}g</span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleVote('UP')}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+            counts.myVote === 'UP' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
+          }`}
+        >
+          <ThumbUpIcon filled={counts.myVote === 'UP'} />
+          찬성 {counts.upVotes}
+        </button>
+        <button
+          onClick={() => handleVote('DOWN')}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+            counts.myVote === 'DOWN' ? 'bg-red-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-red-50'
+          }`}
+        >
+          <ThumbDownIcon filled={counts.myVote === 'DOWN'} />
+          반대 {counts.downVotes}
+        </button>
       </div>
     </div>
   )
 }
+
+function MenuItem({ menu, reportGroup, onToggleReportVote }) {
+  const conf = GRADE_CONFIG[menu.grade]
+  return (
+    <div
+      className="flex flex-col px-5 py-2.5 border-b border-gray-100 last:border-0"
+      style={conf ? { borderLeft: `3px solid ${conf.border}`, backgroundColor: conf.bg } : {}}
+    >
+      <div className="flex gap-3">
+        <div className="w-14 h-14 rounded-xl bg-white/70 shrink-0 overflow-hidden flex items-center justify-center text-gray-300 text-xs border border-white/50">
+          {menu.imageUrl
+            ? <img src={menu.imageUrl} alt={menu.name} className="w-full h-full object-cover" />
+            : '사진'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-gray-800 leading-snug">{menu.name}</p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {conf && (
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${conf.badgeCls}`}>
+                  {conf.label}
+                </span>
+              )}
+              {menu.price != null && menu.price > 0 && (
+                <span className="text-sm font-bold text-emerald-700">{menu.price.toLocaleString()}원</span>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed line-clamp-1">{menu.description}</p>
+          <div className="flex gap-1.5 mt-1.5">
+            <span className="text-xs bg-blue-50 text-blue-500 px-2.5 py-0.5 rounded-full font-semibold">탄 {menu.nutrition.carbs}</span>
+            <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full font-semibold">단 {menu.nutrition.protein}</span>
+            <span className="text-xs bg-orange-50 text-orange-500 px-2.5 py-0.5 rounded-full font-semibold">지 {menu.nutrition.fat}</span>
+          </div>
+          {menu.tags?.length > 0 && (
+            <div className="flex gap-1 flex-wrap mt-1">
+              {menu.tags.map((tag) => (
+                <span key={tag} className="text-[10px] text-gray-400 px-1.5 py-0.5 rounded-full bg-white/60 border border-gray-200">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {reportGroup?.reports?.map((r) => (
+        <MenuReportVoteRow key={r.reportId} report={r} onToggleVote={onToggleReportVote} />
+      ))}
+    </div>
+  )
+}
+
+const ThumbUpIcon = ({ filled }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+    <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+  </svg>
+)
+
+const ThumbDownIcon = ({ filled }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z" />
+    <path d="M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17" />
+  </svg>
+)
 
 const HeartIcon = ({ filled }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -341,13 +419,31 @@ export function StoreDetailContent({
   activeTab,
   store,
   reviews,
+  menuReports,
   gradeFilter,
   sortKey,
   onCreateReview,
   onToggleReviewLike,
+  onToggleMenuReportVote,
   reviewSubmitting,
   reviewError,
 }) {
+  const reportGroupById = useMemo(() => {
+    const map = {}
+    for (const group of menuReports ?? []) {
+      if (group.menuId != null) map[group.menuId] = group
+    }
+    return map
+  }, [menuReports])
+
+  const reportGroupByName = useMemo(() => {
+    const map = {}
+    for (const group of menuReports ?? []) {
+      if (group.menuId == null && group.menuName) map[group.menuName] = group
+    }
+    return map
+  }, [menuReports])
+
   if (activeTab === '리뷰') {
     return (
       <div className="flex flex-col">
@@ -380,7 +476,14 @@ export function StoreDetailContent({
 
   return menus.length ? (
     <div className="flex flex-col">
-      {menus.map((menu) => <MenuItem key={menu.id} menu={menu} />)}
+      {menus.map((menu) => (
+        <MenuItem
+          key={menu.id}
+          menu={menu}
+          reportGroup={reportGroupById[menu.id] ?? reportGroupByName[menu.name]}
+          onToggleReportVote={onToggleMenuReportVote}
+        />
+      ))}
     </div>
   ) : (
     <div className="h-40 flex items-center justify-center text-sm text-gray-400">
