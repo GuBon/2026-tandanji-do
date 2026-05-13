@@ -9,12 +9,6 @@ import useAuthStore from '../../store/useAuthStore.js'
 
 const TABS = ['식단 공유', '오운완', '자유 게시판']
 
-const RATIO_OPTIONS = [
-  { label: '1:1',  value: '1/1' },
-  { label: '4:5',  value: '4/5' },
-  { label: '16:9', value: '16/9' },
-]
-
 const CloseIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -31,7 +25,6 @@ export default function PostCreatePage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [imageUrl, setImageUrl] = useState(null)
-  const [ratio, setRatio] = useState('4/5')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -98,40 +91,21 @@ export default function PostCreatePage() {
           </div>
 
           {/* 이미지 업로드 */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-900">
-                이미지 <span className="font-normal text-gray-400 text-xs">(선택)</span>
-              </span>
-              <div className="flex items-center gap-1.5">
-                {RATIO_OPTIONS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setRatio(r.value)}
-                    className={[
-                      'text-[11px] font-semibold px-2 py-1 rounded-md transition-colors',
-                      ratio === r.value
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-500',
-                    ].join(' ')}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-bold text-gray-900">
+              이미지 <span className="font-normal text-gray-400 text-xs">(선택)</span>
+            </span>
             {user ? (
               <ImageUploader
                 domain="posts"
                 onChange={setImageUrl}
-                aspectRatio={ratio}
+                aspectRatio={null}
               />
             ) : (
               <button
                 type="button"
                 onClick={() => requireAuth(() => {})}
-                className="aspect-[4/5] w-full rounded-2xl border border-dashed border-gray-200 bg-surface-container-low text-sm font-semibold text-gray-400"
+                className="w-full h-20 rounded-2xl border border-dashed border-gray-200 bg-surface-container-low text-sm font-semibold text-gray-400"
               >
                 로그인 후 이미지 첨부 가능
               </button>
