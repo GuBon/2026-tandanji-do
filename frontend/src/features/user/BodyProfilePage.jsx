@@ -8,6 +8,7 @@ import { updateMe } from '../../api/userApi.js'
 
 const HEIGHT_RANGE = { min: 80, max: 250 }
 const WEIGHT_RANGE = { min: 20, max: 300 }
+const AGE_RANGE    = { min: 1,  max: 120 }
 
 function normalizeNumber(value) {
   if (value === '') return null
@@ -37,24 +38,55 @@ function NumberField({ id, label, unit, value, min, max, onChange }) {
   )
 }
 
+function GenderField({ value, onChange }) {
+  return (
+    <div>
+      <span className="block text-xs font-bold text-outline mb-2">성별</span>
+      <div className="flex gap-3">
+        {[{ key: 'M', label: '남성' }, { key: 'F', label: '여성' }].map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onChange(key)}
+            className={[
+              'flex-1 h-14 rounded-xl text-base font-bold border-2 transition-all',
+              value === key
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-outline-variant/30 bg-white text-on-surface-variant',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function BodyProfilePage() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const user = useAuthStore((s) => s.user)
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const user      = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
+
   const requiredByProfile = user && (user.height == null || user.weight == null)
   const required = Boolean(location.state?.required || requiredByProfile)
   const from = location.state?.from && location.state.from !== '/profile/body'
     ? location.state.from
     : '/record'
 
-  const [height, setHeight] = useState(user?.height?.toString() ?? '')
-  const [weight, setWeight] = useState(user?.weight?.toString() ?? '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [height, setHeight]   = useState(user?.height?.toString() ?? '')
+  const [weight, setWeight]   = useState(user?.weight?.toString() ?? '')
+  const [age, setAge]         = useState(user?.age?.toString() ?? '')
+  const [gender, setGender]   = useState(user?.gender ?? '')
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState('')
 
   const title = required ? '신체 정보 입력' : '신체 정보 수정'
-  const canSubmit = useMemo(() => height.trim() !== '' && weight.trim() !== '', [height, weight])
+  const canSubmit = useMemo(
+    () => height.trim() !== '' && weight.trim() !== '' && age.trim() !== '' && gender !== '',
+    [height, weight, age, gender]
+  )
 
   if (!user) return <Navigate to="/map" replace />
 
@@ -63,22 +95,22 @@ export default function BodyProfilePage() {
 
     const nextHeight = normalizeNumber(height)
     const nextWeight = normalizeNumber(weight)
+    const nextAge    = normalizeNumber(age)
 
-    if (
-      nextHeight == null ||
-      nextHeight < HEIGHT_RANGE.min ||
-      nextHeight > HEIGHT_RANGE.max
-    ) {
+    if (nextHeight == null || nextHeight < HEIGHT_RANGE.min || nextHeight > HEIGHT_RANGE.max) {
       setError(`키는 ${HEIGHT_RANGE.min}~${HEIGHT_RANGE.max}cm 사이로 입력해주세요.`)
       return
     }
-
-    if (
-      nextWeight == null ||
-      nextWeight < WEIGHT_RANGE.min ||
-      nextWeight > WEIGHT_RANGE.max
-    ) {
+    if (nextWeight == null || nextWeight < WEIGHT_RANGE.min || nextWeight > WEIGHT_RANGE.max) {
       setError(`몸무게는 ${WEIGHT_RANGE.min}~${WEIGHT_RANGE.max}kg 사이로 입력해주세요.`)
+      return
+    }
+    if (nextAge == null || nextAge < AGE_RANGE.min || nextAge > AGE_RANGE.max) {
+      setError(`나이는 ${AGE_RANGE.min}~${AGE_RANGE.max} 사이로 입력해주세요.`)
+      return
+    }
+    if (!gender) {
+      setError('성별을 선택해주세요.')
       return
     }
 
@@ -86,7 +118,7 @@ export default function BodyProfilePage() {
     setError('')
 
     try {
-      const profile = await updateMe({ height: nextHeight, weight: nextWeight })
+      const profile = await updateMe({ height: nextHeight, weight: nextWeight, age: nextAge, gender })
       updateUser(profile)
       navigate(required ? '/map' : from, { replace: true })
     } catch (err) {
@@ -121,14 +153,24 @@ export default function BodyProfilePage() {
       <form onSubmit={handleSubmit} className="px-5 py-8 pb-28">
         <div className="mb-8">
           <h1 className="text-2xl font-bold font-headline text-on-surface mb-2">
-            {required ? '처음 한 번만 입력해주세요' : '현재 몸 상태에 맞게 바꿔주세요'}
+            {required ? '신체 정보를 입력해주세요' : '현재 몸 상태에 맞게 바꿔주세요'}
           </h1>
           <p className="text-sm leading-6 text-on-surface-variant">
-            식단과 운동 기록에서 더 정확한 칼로리 계산에 사용돼요.
+            기초대사량 계산 및 더 정확한 칼로리 분석에 사용돼요.
           </p>
         </div>
 
         <div className="space-y-5">
+          <GenderField value={gender} onChange={setGender} />
+          <NumberField
+            id="age"
+            label="나이"
+            unit="세"
+            value={age}
+            min={AGE_RANGE.min}
+            max={AGE_RANGE.max}
+            onChange={setAge}
+          />
           <NumberField
             id="height"
             label="키"

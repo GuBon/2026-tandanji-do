@@ -12,6 +12,7 @@ import PostCreatePage from './features/community/PostCreatePage.jsx'
 import PostDetailPage from './features/community/PostDetailPage.jsx'
 import AdminReportPage from './features/admin/AdminReportPage.jsx'
 import BodyProfilePage from './features/user/BodyProfilePage.jsx'
+import DashboardPage from './features/record/DashboardPage.jsx'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
                 <Route path="/map/store/:id" element={<MapStorePage />} />
                 <Route path="/diet" element={<DietRecordPage />} />
                 <Route path="/record" element={<RecordPage />} />
+                <Route path="/record/dashboard" element={<DashboardPage />} />
                 <Route path="/profile/body" element={<BodyProfilePage />} />
                 <Route path="/chatbot" element={<ChatbotPage />} />
                 <Route path="/community" element={<CommunityPage />} />
