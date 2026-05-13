@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import FilterLegendSheet from './FilterLegendSheet.jsx'
+
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <circle cx="8" cy="8" r="5.5" stroke="#9CA3AF" strokeWidth="1.5" />
@@ -13,7 +16,15 @@ const FilterIcon = () => (
 
 const GRADE_COLOR = { GREEN: '#4ADE80', YELLOW: '#FACC15', RED: '#F87171' }
 
-export default function SearchOverlay({ value = '', onChange, onSearch, onFilterClick, results = [], onSelect }) {
+const GRADES = [
+  { key: 'GREEN',  label: '균형식', color: '#4ADE80', bg: 'rgba(240,253,244,0.85)' },
+  { key: 'YELLOW', label: '일반식', color: '#FACC15', bg: 'rgba(254,252,232,0.85)' },
+  { key: 'RED',    label: '주의식', color: '#F87171', bg: 'rgba(255,241,242,0.85)' },
+]
+
+export default function SearchOverlay({ value = '', onChange, onSearch, onFilterClick, results = [], onSelect, activeFilters, onGradeFilter }) {
+  const [legendOpen, setLegendOpen] = useState(false)
+
   const submitSearch = (event) => {
     event.preventDefault()
     onSearch?.(value)
@@ -25,6 +36,7 @@ export default function SearchOverlay({ value = '', onChange, onSearch, onFilter
   }
 
   return (
+    <>
     <div className="absolute left-5 right-5 top-4 z-ui">
       <form
         onSubmit={submitSearch}
@@ -55,6 +67,43 @@ export default function SearchOverlay({ value = '', onChange, onSearch, onFilter
         </button>
       </form>
 
+      {onGradeFilter && (
+        <div className="flex items-center gap-2 mt-2">
+          {GRADES.map(({ key, label, color, bg }) => {
+            const isActive = activeFilters?.has(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onGradeFilter(key)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+                style={{
+                  backgroundColor: isActive ? color : 'rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(8px)',
+                  color: isActive ? '#fff' : color,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setLegendOpen(true)}
+            className="ml-auto flex items-center justify-center px-2 py-1 rounded-full border shrink-0 transition-all"
+            style={{
+              borderColor: 'rgba(255,255,255,0.4)',
+              backgroundColor: 'rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(8px)',
+            }}
+            aria-label="등급 안내"
+          >
+            <img src="/images/question-mark.png" alt="등급 안내" className="w-4 h-4 object-contain" />
+          </button>
+        </div>
+      )}
+
       {results.length > 0 && (
         <div className="mt-1.5 max-h-[240px] overflow-y-auto bg-white/90 backdrop-blur-md rounded-xl shadow-md divide-y divide-gray-100">
           {results.map((store) => (
@@ -78,5 +127,8 @@ export default function SearchOverlay({ value = '', onChange, onSearch, onFilter
         </div>
       )}
     </div>
+
+    {legendOpen && <FilterLegendSheet onClose={() => setLegendOpen(false)} />}
+    </>
   )
 }

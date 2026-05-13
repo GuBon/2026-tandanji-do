@@ -1,13 +1,6 @@
 import { useState } from 'react'
 import Button from '../../components/Button.jsx'
 import BottomSheet from '../../components/BottomSheet.jsx'
-import FilterLegendSheet from './FilterLegendSheet.jsx'
-
-const GRADES = [
-  { key: 'GREEN',  label: '균형식', color: '#4ADE80', bg: '#F0FDF4' },
-  { key: 'YELLOW', label: '일반식', color: '#FACC15', bg: '#FEFCE8' },
-  { key: 'RED',    label: '주의식', color: '#F87171', bg: '#FFF1F2' },
-]
 
 const TAGS = [
   { key: '#고단백', label: '고단백' },
@@ -90,7 +83,6 @@ export default function FilterBottomSheet({
   onResetNutritionFilters,
 }) {
   const [values, setValues] = useState(DEFAULTS)
-  const [legendOpen, setLegendOpen] = useState(false)
 
   const setMin = (key, v) => setValues((prev) => ({ ...prev, [key]: { ...prev[key], min: v } }))
   const setMax = (key, v) => setValues((prev) => ({ ...prev, [key]: { ...prev[key], max: v } }))
@@ -107,18 +99,11 @@ export default function FilterBottomSheet({
   }
 
   return (
-    <>
-      <BottomSheet onClose={onClose} defaultExpanded>
+    <BottomSheet onClose={onClose} defaultExpanded>
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pt-3 pb-2 shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-[#1E293B]">필터</span>
-            <button
-              onClick={() => setLegendOpen(true)}
-              className="w-6 h-6 flex items-center justify-center"
-            >
-              <img src="/images/question-mark.png" alt="필터 안내" className="w-5 h-5 object-contain drop-shadow" />
-            </button>
           </div>
           <button
             onClick={onClose}
@@ -130,29 +115,6 @@ export default function FilterBottomSheet({
 
         {/* 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto px-6 flex flex-col gap-6 pb-4">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">매장 등급</span>
-            <div className="flex gap-2">
-              {GRADES.map(({ key, label, color, bg }) => {
-                const isActive = activeFilters?.has(key)
-                return (
-                  <button
-                    key={key}
-                    onClick={() => onFilterChange(key)}
-                    className="flex-1 h-9 rounded-xl text-sm font-semibold border-2 transition-all"
-                    style={{
-                      borderColor: isActive ? color : '#E5E7EB',
-                      backgroundColor: isActive ? bg : 'white',
-                      color: isActive ? color : '#9CA3AF',
-                    }}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">영양소 태그</span>
             <div className="flex gap-2">
@@ -203,8 +165,5 @@ export default function FilterBottomSheet({
           <Button variant="sheet-confirm" onClick={handleApply}>적용하기</Button>
         </div>
       </BottomSheet>
-
-      {legendOpen && <FilterLegendSheet onClose={() => setLegendOpen(false)} />}
-    </>
   )
 }

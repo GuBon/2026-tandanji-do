@@ -6,32 +6,12 @@ const GRADE_LEGEND = [
   { emoji: '🔴', name: '주의 식단', desc: '특정 영양소가 과하거나 부족해요',    border: '#F87171' },
 ]
 
-const TAG_LEGEND = [
-  { name: '고단백', desc: '근성장에 유리한 단백질 비중' },
-  { name: '고지방', desc: '키토식이거나 칼로리 밀도가 높아요' },
-  { name: '고탄수', desc: '에너지원이 풍부, 운동 전 식사로 적합' },
-  { name: '저탄수', desc: '탄수화물을 제한한 식단' },
-]
-
 function GradeRow({ item }) {
   return (
     <div className="flex items-center gap-3 py-2.5 pl-3" style={{ borderLeft: `3px solid ${item.border}` }}>
       <span className="text-xl w-7 text-center">{item.emoji}</span>
       <div className="flex flex-col">
         <span className="text-sm font-bold text-on-surface">{item.name}</span>
-        <span className="text-xs text-on-surface-variant mt-0.5">{item.desc}</span>
-      </div>
-    </div>
-  )
-}
-
-function TagRow({ item }) {
-  return (
-    <div className="flex items-center gap-3 py-2.5">
-      <div className="flex flex-col">
-        <span className="text-sm font-bold text-on-surface">
-          <span className="text-primary mr-0.5">#</span>{item.name}
-        </span>
         <span className="text-xs text-on-surface-variant mt-0.5">{item.desc}</span>
       </div>
     </div>
@@ -61,15 +41,6 @@ export default function FilterLegendSheet({ onClose }) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">마커 색상</p>
           <div className="flex flex-col gap-0.5">
             {GRADE_LEGEND.map((item) => <GradeRow key={item.name} item={item} />)}
-          </div>
-        </div>
-
-        <div className="h-px bg-outline-variant/20" />
-
-        <div className="flex flex-col gap-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1">영양소 태그</p>
-          <div className="flex flex-col gap-0.5">
-            {TAG_LEGEND.map((item) => <TagRow key={item.name} item={item} />)}
           </div>
         </div>
       </div>
