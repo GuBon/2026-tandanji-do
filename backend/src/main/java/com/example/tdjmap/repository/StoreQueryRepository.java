@@ -27,13 +27,22 @@ public class StoreQueryRepository {
                 s.latitude::float8  AS latitude,
                 s.longitude::float8 AS longitude,
                 s.category,
+                b.logo_url          AS brand_logo_url,
                 ROUND(AVG(r.star)::numeric, 1)::float8 AS rating,
                 bm.carbs,
                 bm.protein,
                 bm.fat,
                 bm.nutrition_grade,
-                bm.nutrition_tags
+                bm.nutrition_tags,
+                (SELECT COUNT(*)::int
+                 FROM tandanji.reports rp
+                 WHERE rp.store_id = s.store_id
+                   AND rp.status = 'PENDING') AS report_count,
+                lr.carbs    AS lr_carbs,
+                lr.protein  AS lr_protein,
+                lr.fat      AS lr_fat
             FROM tandanji.stores s
+            LEFT JOIN tandanji.brands b ON b.brand_id = s.brand_id
             LEFT JOIN tandanji.reviews r ON r.store_id = s.store_id
             LEFT JOIN LATERAL (
                 SELECT
@@ -57,6 +66,15 @@ public class StoreQueryRepository {
                          m.menu_id
                 LIMIT 1
             ) bm ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT rp.carbs, rp.protein, rp.fat
+                FROM tandanji.reports rp
+                WHERE rp.store_id = s.store_id
+                  AND rp.status = 'PENDING'
+                  AND (rp.carbs IS NOT NULL OR rp.protein IS NOT NULL OR rp.fat IS NOT NULL)
+                ORDER BY rp.created_at DESC
+                LIMIT 1
+            ) lr ON TRUE
             WHERE s.latitude  BETWEEN :swLat AND :neLat
               AND s.longitude BETWEEN :swLng AND :neLng
               AND (:category IS NULL OR s.category = :category)
@@ -85,11 +103,15 @@ public class StoreQueryRepository {
                 s.latitude,
                 s.longitude,
                 s.category,
+                b.logo_url,
                 bm.carbs,
                 bm.protein,
                 bm.fat,
                 bm.nutrition_grade,
-                bm.nutrition_tags
+                bm.nutrition_tags,
+                lr.carbs,
+                lr.protein,
+                lr.fat
             ORDER BY s.store_id
             """;
 
@@ -113,6 +135,15 @@ public class StoreQueryRepository {
                     ? new MarkerMacroDto(carbs, protein, fat, nutritionGrade, nutritionTags)
                     : null;
 
+            Long lrCarbs = toLong(rs.getObject("lr_carbs"));
+            Long lrProtein = toLong(rs.getObject("lr_protein"));
+            Long lrFat = toLong(rs.getObject("lr_fat"));
+            MarkerMacroDto latestReportMacro = (lrCarbs != null || lrProtein != null || lrFat != null)
+                    ? new MarkerMacroDto(lrCarbs, lrProtein, lrFat, null, List.of())
+                    : null;
+
+            int reportCount = rs.getInt("report_count");
+
             return StoreMarkerResponse.builder()
                     .storeId(rs.getLong("store_id"))
                     .brandId(toLong(rs.getObject("brand_id")))
@@ -121,8 +152,11 @@ public class StoreQueryRepository {
                     .latitude(rs.getDouble("latitude"))
                     .longitude(rs.getDouble("longitude"))
                     .category(rs.getString("category"))
+                    .brandLogoUrl(rs.getString("brand_logo_url"))
                     .rating(toDouble(rs.getObject("rating")))
                     .markerMacro(macro)
+                    .reportCount(reportCount > 0 ? reportCount : null)
+                    .latestReportMacro(latestReportMacro)
                     .build();
         });
     }

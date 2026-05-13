@@ -16,6 +16,9 @@ public class StoreMarkerResponse {
     private Double latitude;
     private Double longitude;
     private String category;
+    private String brandLogoUrl;
     private Double rating;
     private MarkerMacroDto markerMacro;
+    private Integer reportCount;
+    private MarkerMacroDto latestReportMacro;
 }
