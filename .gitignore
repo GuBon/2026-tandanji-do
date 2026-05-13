@@ -19,3 +19,15 @@ ppt/
 .codex-ppt-tools/
 tools/create-final-ppt.mjs
 tools/extract-pdf-text.mjs
+
+# Image download scripts & npm artifacts
+scripts/download-brand-images.js
+scripts/download-menu-images.js
+scripts/scrape-place-menus.js
+scripts/test-*.js
+scripts/dump-html.js
+scripts/*.html
+scripts/*.json
+scripts/package.json
+scripts/package-lock.json
+scripts/node_modules/
