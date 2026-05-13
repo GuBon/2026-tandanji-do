@@ -7,7 +7,11 @@ import com.example.tdjmap.entity.Review;
 import com.example.tdjmap.entity.ReviewLike;
 import com.example.tdjmap.entity.Store;
 import com.example.tdjmap.entity.User;
+import com.example.tdjmap.entity.Menu;
+import com.example.tdjmap.entity.Report;
 import com.example.tdjmap.repository.MenuRepository;
+import com.example.tdjmap.repository.ReportRepository;
+import com.example.tdjmap.repository.ReportVoteRepository;
 import com.example.tdjmap.repository.ReviewLikeRepository;
 import com.example.tdjmap.repository.ReviewRepository;
 import com.example.tdjmap.repository.StoreRepository;
@@ -23,7 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +48,8 @@ public class StoreService {
     private final ReviewLikeRepository reviewLikeRepository;
     private final UserRepository userRepository;
     private final StoreQueryRepository storeQueryRepository;
+    private final ReportRepository reportRepository;
+    private final ReportVoteRepository reportVoteRepository;
     private final ObjectMapper objectMapper;
 
     // ── 지도 범위 + 필터로 식당 마커 목록 조회 ─────────────────────────────────
@@ -113,6 +122,74 @@ public class StoreService {
                             .build();
                 })
                 .toList();
+    }
+
+    // ── 메뉴별 PENDING 제보 그룹 조회 ─────────────────────────────────────────
+
+    public List<MenuReportGroupResponse> getMenuReports(Long storeId) {
+        findStoreOrThrow(storeId);
+        Long currentUserId = SecurityUtil.getCurrentUserIdOrNull();
+        List<Report> reports = reportRepository.findPendingByStoreId(storeId);
+        if (reports.isEmpty()) return List.of();
+
+        List<Long> reportIds = reports.stream().map(Report::getId).toList();
+        Map<Long, long[]> voteCounts = buildVoteCounts(reportIds);
+        Map<Long, String> myVoteMap = currentUserId != null
+                ? buildMyVoteMap(reportIds, currentUserId) : Map.of();
+
+        // groupKey → itemList
+        Map<String, List<MenuReportItemDto>> itemsByKey = new LinkedHashMap<>();
+        Map<String, MenuReportGroupResponse.MenuReportGroupResponseBuilder> metaByKey = new LinkedHashMap<>();
+
+        for (Report r : reports) {
+            String key = r.getMenu() != null ? "id:" + r.getMenu().getId() : "name:" + r.getMenuName();
+            itemsByKey.computeIfAbsent(key, k -> new ArrayList<>());
+            metaByKey.computeIfAbsent(key, k -> MenuReportGroupResponse.builder()
+                    .menuId(r.getMenu() != null ? r.getMenu().getId() : null)
+                    .menuName(r.getMenuName()));
+
+            long[] counts = voteCounts.getOrDefault(r.getId(), new long[]{0, 0});
+            String myVote = myVoteMap.get(r.getId());
+            itemsByKey.get(key).add(
+                    MenuReportItemDto.builder()
+                            .reportId(r.getId())
+                            .carbs(r.getCarbs())
+                            .protein(r.getProtein())
+                            .fat(r.getFat())
+                            .imageUrl(r.getImageUrl())
+                            .upVotes(counts[0])
+                            .downVotes(counts[1])
+                            .myVote(myVote)
+                            .createdAt(r.getCreatedAt())
+                            .build());
+        }
+
+        return metaByKey.entrySet().stream()
+                .map(e -> e.getValue().reports(itemsByKey.get(e.getKey())).build())
+                .toList();
+    }
+
+    private Map<Long, String> buildMyVoteMap(List<Long> reportIds, Long userId) {
+        return reportVoteRepository.findUserVotesByReportIds(reportIds, userId)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> (String) row[1]
+                ));
+    }
+
+    private Map<Long, long[]> buildVoteCounts(List<Long> reportIds) {
+        List<Object[]> rows = reportVoteRepository.countVotesByReportIds(reportIds);
+        Map<Long, long[]> map = new HashMap<>();
+        for (Object[] row : rows) {
+            Long rId = ((Number) row[0]).longValue();
+            String type = (String) row[1];
+            long cnt = ((Number) row[2]).longValue();
+            map.computeIfAbsent(rId, k -> new long[]{0, 0});
+            if ("UP".equals(type))   map.get(rId)[0] = cnt;
+            if ("DOWN".equals(type)) map.get(rId)[1] = cnt;
+        }
+        return map;
     }
 
     // ── 식당 리뷰 목록 조회 ────────────────────────────────────────────────────

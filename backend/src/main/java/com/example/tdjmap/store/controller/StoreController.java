@@ -81,6 +81,12 @@ public class StoreController {
         return ResponseEntity.status(201).body(ApiResponse.created(response));
     }
 
+    @GetMapping("/{storeId}/menu-reports")
+    public ResponseEntity<ApiResponse<List<MenuReportGroupResponse>>> getMenuReports(
+            @PathVariable Long storeId) {
+        return ResponseEntity.ok(ApiResponse.ok(storeService.getMenuReports(storeId)));
+    }
+
     @GetMapping("/{storeId}/reviews/{reviewId}/likes")
     public ResponseEntity<ApiResponse<ReviewLikeResponse>> getReviewLikeStatus(
             @PathVariable Long storeId,
