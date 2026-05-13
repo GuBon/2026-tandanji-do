@@ -5,6 +5,17 @@ import ImageUploader from '../../components/ImageUploader.jsx'
 import { useReport } from './useReport.js'
 import { useKakaoPlaceSearch } from './useKakaoPlaceSearch.js'
 import useMapStore from '../../store/useMapStore.js'
+import { analyzeNutrition } from '../../api/chatbotApi.js'
+import AiNutritionModal from '../record/AiNutritionModal.jsx'
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 const CarbsIcon = () => (
   <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -39,11 +50,36 @@ const NUTRITION_ROWS = [
   { key: 'fat',     Icon: FatIcon,     label: '지방',     sub: 'FAT' },
 ]
 
-export default function ReportModal({ onClose }) {
-  const { form, setField, setPlace, clearPlaceDetails, clearPlace, loading, error, submit } = useReport({ onSuccess: onClose })
+export default function ReportModal({ onClose, onSuccess }) {
+  const { form, setField, setFieldValue, setPlace, clearPlaceDetails, clearPlace, loading, error, submit } = useReport({ onSuccess: onSuccess ?? onClose })
   const latLon = useMapStore(s => s.latLon)
   const { query, setQuery, results, searching, searchError, clearResults } = useKakaoPlaceSearch(latLon)
   const [imageUrl, setImageUrl] = useState(null)
+  const [aiFile, setAiFile] = useState(null)
+  const [aiAnalyzing, setAiAnalyzing] = useState(false)
+  const [aiModalResult, setAiModalResult] = useState(null)
+
+  const handleAiAnalyze = async () => {
+    if (!aiFile) return
+    setAiAnalyzing(true)
+    try {
+      const dataUrl = await fileToDataUrl(aiFile)
+      const data = await analyzeNutrition({ image: dataUrl })
+      if (data.menuName != null) {
+        setFieldValue('menuName', data.menuName)
+        if (data.carbs != null) setFieldValue('carbs', String(data.carbs))
+        if (data.protein != null) setFieldValue('protein', String(data.protein))
+        if (data.fat != null) setFieldValue('fat', String(data.fat))
+        setAiModalResult('success')
+      } else {
+        setAiModalResult('fail')
+      }
+    } catch {
+      setAiModalResult('fail')
+    } finally {
+      setAiAnalyzing(false)
+    }
+  }
 
   const handleStoreInput = (e) => {
     setField('storeName')(e)
@@ -66,13 +102,15 @@ export default function ReportModal({ onClose }) {
   const showDropdown = !form.storeAddress && (searching || results.length > 0 || !!searchError)
 
   return (
+    <>
     <BottomSheet onClose={onClose} defaultExpanded>
       <div className="flex-1 overflow-y-auto px-6 pt-7 pb-10 flex flex-col gap-6">
 
         <div className="flex flex-col gap-1.5">
           <h2 className="text-[28px] font-bold text-gray-800 leading-tight">정보 제보하기</h2>
           <p className="text-sm text-gray-500 leading-snug">
-            임상 큐레이터를 위해 정확한 식품 정보를 공유해 주세요.
+            주변의 건강식단 매장이나 메뉴 정보를 제보해주세요. <br />
+            찬성수 - 반대수가 5이상인 경우 반영됩니다. <br />
           </p>
         </div>
 
@@ -135,6 +173,34 @@ export default function ReportModal({ onClose }) {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-bold text-gray-800">
+            이미지 첨부 <span className="font-normal text-gray-400">(선택)</span>
+          </label>
+          <ImageUploader domain="reports" onChange={setImageUrl} onFile={setAiFile} aspectRatio="16/9" />
+
+          <button
+            type="button"
+            onClick={handleAiAnalyze}
+            disabled={!aiFile || aiAnalyzing}
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 text-emerald-600 text-sm font-semibold transition-colors hover:bg-emerald-50 disabled:opacity-50"
+          >
+            {aiAnalyzing ? (
+              <span className="animate-pulse">분석 중...</span>
+            ) : (
+              <>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                  <path fillRule="evenodd" d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06A.75.75 0 116.11 5.173L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM3 8.25a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H3zm11.25 0a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zM5.05 14.888a.75.75 0 001.06-1.06l-1.06-1.062a.75.75 0 10-1.062 1.061l1.061 1.06zm8.841-1.06a.75.75 0 10-1.061-1.062l-1.062 1.061a.75.75 0 001.061 1.062l1.062-1.061zM10 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 13zM6.75 10a3.25 3.25 0 116.5 0 3.25 3.25 0 01-6.5 0z" clipRule="evenodd" />
+                </svg>
+                AI 영양성분 분석
+              </>
+            )}
+          </button>
+          {!aiFile && (
+            <p className="text-xs text-gray-400 text-center">사진을 업로드하면 AI 영양성분 분석이 가능합니다</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-gray-800">
             메뉴명 <span className="font-normal text-gray-400">(MENU NAME)</span>
           </label>
           <input
@@ -171,13 +237,6 @@ export default function ReportModal({ onClose }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-bold text-gray-800">
-            이미지 첨부 <span className="font-normal text-gray-400">(선택)</span>
-          </label>
-          <ImageUploader domain="reports" onChange={setImageUrl} aspectRatio="16/9" />
-        </div>
-
         {error && (
           <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</p>
         )}
@@ -195,5 +254,13 @@ export default function ReportModal({ onClose }) {
         </div>
       </div>
     </BottomSheet>
+
+    {aiModalResult && (
+      <AiNutritionModal
+        success={aiModalResult === 'success'}
+        onClose={() => setAiModalResult(null)}
+      />
+    )}
+    </>
   )
 }

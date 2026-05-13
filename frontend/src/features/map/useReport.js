@@ -18,6 +18,7 @@ export function useReport({ onSuccess }) {
   const [error, setError] = useState(null)
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  const setFieldValue = (key, value) => setForm((f) => ({ ...f, [key]: value }))
 
   const setPlace = ({ placeName, address, lat, lon }) => {
     setForm((f) => ({ ...f, storeName: placeName, storeAddress: address, storeLat: lat, storeLon: lon }))
@@ -59,5 +60,5 @@ export function useReport({ onSuccess }) {
     }
   }
 
-  return { form, setField, setPlace, clearPlaceDetails, clearPlace, loading, error, submit }
+  return { form, setField, setFieldValue, setPlace, clearPlaceDetails, clearPlace, loading, error, submit }
 }
