@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import { useKakaoLogin } from './useKakaoLogin'
@@ -16,14 +16,18 @@ export default function AuthGuard({ children }) {
   const jwtRefreshToken = useAuthStore((s) => s.jwtRefreshToken)
   const profileLoaded = useAuthStore((s) => s.profileLoaded)
   const setAccessToken = useAuthStore((s) => s.setAccessToken)
+  const setTokens = useAuthStore((s) => s.setTokens)
   const updateUser = useAuthStore((s) => s.updateUser)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const { login, browseAsGuest } = useKakaoLogin()
   const [refreshing, setRefreshing] = useState(false)
+  const refreshCalled = useRef(false)
 
   // 새로고침 후 메모리에서 사라진 accessToken을 복원 — 로그인 화면 노출 방지
   useEffect(() => {
     if (!jwtRefreshToken || jwtAccessToken) return
+    if (refreshCalled.current) return
+    refreshCalled.current = true
 
     setRefreshing(true)
     fetch(`${API_BASE}/auth/refresh`, {
@@ -35,10 +39,10 @@ export default function AuthGuard({ children }) {
         if (!res.ok) throw new Error('refresh failed')
         return res.json()
       })
-      .then(({ data }) => setAccessToken(data.accessToken))
+      .then(({ data }) => setTokens(data.accessToken, data.refreshToken))
       .catch(() => clearAuth())
       .finally(() => setRefreshing(false))
-  }, [jwtRefreshToken, jwtAccessToken, setAccessToken, clearAuth])
+  }, [jwtRefreshToken, jwtAccessToken, setTokens, clearAuth])
 
   // 로그인 상태에서 전체 프로필(height, weight 등) 로드
   useEffect(() => {
@@ -77,7 +81,7 @@ export default function AuthGuard({ children }) {
   return (
     <div className="w-full h-dvh flex flex-col items-center justify-center bg-[#F8F9FA] px-8">
       <img
-        src="/images/tdj_logo.png"
+        src="/images/tdj_logo_main.png"
         alt="TanDanJi Map"
         className="w-72 max-w-[74%] object-contain mb-4"
       />

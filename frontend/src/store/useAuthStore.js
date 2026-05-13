@@ -20,6 +20,7 @@ const useAuthStore = create(persist(
     clearAuth: () =>
       set({ user: null, jwtAccessToken: null, jwtRefreshToken: null, isGuest: false, isLoading: false, error: null, profileLoaded: false }),
     setAccessToken: (jwtAccessToken) => set({ jwtAccessToken }),
+    setTokens: (jwtAccessToken, jwtRefreshToken) => set({ jwtAccessToken, jwtRefreshToken }),
     setLoading: (isLoading) => set({ isLoading }),
     setError: (error) => set({ error, isLoading: false }),
   }),
