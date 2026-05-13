@@ -18,6 +18,7 @@ public class UserResponse {
     private Long height;
     private Long weight;
     private String gender;
+    private Integer age;
     private LocalDateTime createdAt;
 
     public static UserResponse from(User user) {
@@ -28,6 +29,7 @@ public class UserResponse {
                 .height(user.getHeight())
                 .weight(user.getWeight())
                 .gender(user.getGender())
+                .age(user.getAge())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

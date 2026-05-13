@@ -24,6 +24,7 @@ public class User {
     private Long height;
     private Long weight;
     private String gender;
+    private Integer age;
 
     @Builder.Default
     @Column(nullable = false, length = 10)

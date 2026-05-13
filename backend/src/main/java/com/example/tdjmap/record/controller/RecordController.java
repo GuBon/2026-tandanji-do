@@ -4,6 +4,7 @@ import com.example.tdjmap.common.ApiResponse;
 import com.example.tdjmap.record.dto.*;
 import com.example.tdjmap.record.service.DietRecordService;
 import com.example.tdjmap.record.service.ExerciseRecordService;
+import com.example.tdjmap.record.service.WeightLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +20,7 @@ public class RecordController {
 
     private final DietRecordService dietRecordService;
     private final ExerciseRecordService exerciseRecordService;
+    private final WeightLogService weightLogService;
 
     // ── 식단 기록 ──────────────────────────────────────────────────────────────
 
@@ -69,5 +71,12 @@ public class RecordController {
     public ResponseEntity<ApiResponse<Void>> deleteExerciseLog(@PathVariable Long exerciseId) {
         exerciseRecordService.deleteExerciseLog(exerciseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ── 체중 기록 ──────────────────────────────────────────────────────────────
+
+    @GetMapping("/weight-logs")
+    public ResponseEntity<ApiResponse<List<WeightLogResponse>>> getWeightLogs() {
+        return ResponseEntity.ok(ApiResponse.ok(weightLogService.getMyLogs()));
     }
 }
