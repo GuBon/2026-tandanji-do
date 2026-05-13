@@ -35,6 +35,7 @@ function TabBar({ activeTab, onTabChange }) {
   )
 }
 
+
 export default function RecordPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false)
@@ -65,7 +66,12 @@ export default function RecordPage() {
       <PageLayout
         customHeader={
           <>
-            <Header right={<Button variant="gradient" onClick={handleAdd}>기록하기</Button>} />
+            <Header right={
+            <div className="flex items-center gap-2">
+              <Button variant="gradient-blue" onClick={() => navigate('/record/dashboard')}>분석</Button>
+              <Button variant="gradient" onClick={handleAdd}>기록하기</Button>
+            </div>
+          } />
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
           </>
         }

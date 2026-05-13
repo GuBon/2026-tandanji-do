@@ -66,3 +66,12 @@ export async function deleteExerciseLog(exerciseId) {
   const res = await apiClient(`/exercise-logs/${exerciseId}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(res.status)
 }
+
+// ── 체중 기록 ──────────────────────────────────────────────────────────────
+
+export async function fetchWeightLogs() {
+  const res = await apiClient('/weight-logs')
+  if (!res.ok) throw new Error(res.status)
+  const { data } = await res.json()
+  return data
+}
