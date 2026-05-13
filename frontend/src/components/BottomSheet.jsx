@@ -1,20 +1,9 @@
 import { useState, useRef } from 'react'
 
-/**
- * 공통 바텀시트 컴포넌트
- *
- * Props:
- *   onClose         - 시트를 닫을 때 호출
- *   overlay         - 딤 배경 표시 여부 (기본: true)
- *   mapMode         - 지도 위에서 사용 시 true → 외부 pointer-events-none (기본: false)
- *   defaultExpanded - 처음부터 확장 상태로 열기 (기본: false)
- *   children        - 시트 내용 (flex-col 컨테이너 안에 렌더링)
- *
- * 드래그 동작:
- *   핸들을 위로 60px+ → 확장 (92dvh)
- *   핸들을 아래로 80px+ (축소 상태) → 닫기
- *   핸들을 아래로 60px+ (확장 상태) → 축소 (65dvh)
- */
+const DEFAULT_HEIGHT = 52  // dvh — 기본 높이
+const MAX_HEIGHT = 92      // dvh — 최대 높이
+const CLOSE_THRESHOLD = 10 // dvh — 이 아래로 내리면 닫힘
+
 export default function BottomSheet({
   children,
   onClose,
@@ -22,45 +11,46 @@ export default function BottomSheet({
   mapMode = false,
   defaultExpanded = false,
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-  const [dragY, setDragY] = useState(0)
+  const [height, setHeight] = useState(defaultExpanded ? MAX_HEIGHT : DEFAULT_HEIGHT)
   const [dragging, setDragging] = useState(false)
   const startY = useRef(null)
+  const startHeight = useRef(null)
+
+  function toDvh(px) {
+    return px / (window.innerHeight / 100)
+  }
 
   function dragStart(y) {
     startY.current = y
+    startHeight.current = height
     setDragging(true)
   }
 
   function dragMove(y) {
     if (startY.current == null) return
-    setDragY(Math.max(0, y - startY.current))
+    const delta = toDvh(startY.current - y)
+    setHeight(Math.min(MAX_HEIGHT, Math.max(CLOSE_THRESHOLD, startHeight.current + delta)))
   }
 
-  function dragEnd(y) {
+  function dragEnd() {
     if (startY.current == null) return
-    const delta = y - startY.current
     startY.current = null
     setDragging(false)
-    setDragY(0)
-
-    if (!expanded) {
-      if (delta < -60) setExpanded(true)
-      else if (delta > 80) onClose?.()
-    } else {
-      if (delta > 60) setExpanded(false)
-    }
+    setHeight(prev => {
+      if (prev <= CLOSE_THRESHOLD) { onClose?.(); return DEFAULT_HEIGHT }
+      return prev
+    })
   }
 
   const tStart = (e) => dragStart(e.touches[0].clientY)
   const tMove  = (e) => dragMove(e.touches[0].clientY)
-  const tEnd   = (e) => dragEnd(e.changedTouches[0].clientY)
+  const tEnd   = () => dragEnd()
 
   function mDown(e) {
     dragStart(e.clientY)
     const mm = (ev) => dragMove(ev.clientY)
-    const mu = (ev) => {
-      dragEnd(ev.clientY)
+    const mu = () => {
+      dragEnd()
       window.removeEventListener('mousemove', mm)
       window.removeEventListener('mouseup', mu)
     }
@@ -72,11 +62,8 @@ export default function BottomSheet({
     <div
       className="w-full bg-white rounded-t-3xl shadow-xl flex flex-col"
       style={{
-        maxHeight: expanded ? '92dvh' : '65dvh',
-        transform: `translateY(${dragY}px)`,
-        transition: dragging
-          ? 'none'
-          : 'transform 0.3s cubic-bezier(0.32,0.72,0,1), max-height 0.3s cubic-bezier(0.32,0.72,0,1)',
+        height: `${height}dvh`,
+        transition: dragging ? 'none' : 'height 0.3s cubic-bezier(0.32,0.72,0,1)',
       }}
     >
       {/* 드래그 핸들 */}
@@ -87,7 +74,7 @@ export default function BottomSheet({
         onTouchEnd={tEnd}
         onMouseDown={mDown}
       >
-        <div className={`w-10 h-1 rounded-full transition-colors duration-300 ${expanded ? 'bg-gray-400' : 'bg-gray-200'}`} />
+        <div className={`w-10 h-1 rounded-full transition-colors duration-300 ${height > 60 ? 'bg-gray-400' : 'bg-gray-200'}`} />
       </div>
 
       {children}

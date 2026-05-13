@@ -1,6 +1,8 @@
 const variants = {
   gradient:
     'bg-gradient-to-b from-[#1b6d24] to-[#076419] text-white text-sm font-semibold rounded-full px-4 py-2 hover:opacity-90 active:opacity-80 transition-opacity',
+  'gradient-blue':
+    'bg-gradient-to-b from-[#49AFE6] to-[#2a8fc4] text-white text-sm font-semibold rounded-full px-4 py-2 hover:opacity-90 active:opacity-80 transition-opacity',
   filter:
     'bg-white text-gray-600 text-xs font-medium rounded-xl px-3 h-8 hover:bg-emerald-50 hover:text-emerald-700 transition-colors shadow-sm',
   'filter-active':

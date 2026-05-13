@@ -30,6 +30,8 @@ export default function ImageUploader({ domain, onChange, onFile, aspectRatio = 
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
+  const fixed = !!aspectRatio
+
   const handleFile = useCallback(async (file) => {
     if (!file) return
     setError(null)
@@ -74,11 +76,15 @@ export default function ImageUploader({ domain, onChange, onFile, aspectRatio = 
         onClick={uploading ? undefined : () => inputRef.current?.click()}
         onKeyDown={(e) => { if (!uploading && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click() }}
         className={`relative w-full bg-surface-container-low rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden transition-colors hover:border-primary/40 ${uploading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-        style={{ aspectRatio }}
+        style={fixed ? { aspectRatio } : undefined}
       >
         {preview ? (
           <>
-            <img src={preview} alt="업로드 이미지" className="w-full h-full object-cover" />
+            <img
+              src={preview}
+              alt="업로드 이미지"
+              className={fixed ? 'w-full h-full object-cover' : 'w-full h-auto block'}
+            />
 
             {uploading && (
               <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -97,7 +103,7 @@ export default function ImageUploader({ domain, onChange, onFile, aspectRatio = 
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-10">
+          <div className={`flex flex-col items-center justify-center gap-2 ${fixed ? 'py-10' : 'py-6'}`}>
             <div className="relative">
               <CameraIcon />
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">

@@ -1,9 +1,22 @@
-const LOGO = (
-  <span className="text-[17px] font-bold tracking-tight">
-    <span className="text-[#49AFE6]">탄단지</span>
-    <span className="text-[#15803d]">도</span>
-  </span>
-)
+import { useNavigate } from 'react-router-dom'
+
+function LogoLink() {
+  const navigate = useNavigate()
+  return (
+    <button
+      onClick={() => navigate('/map')}
+      className="flex items-center gap-1.5 cursor-pointer"
+    >
+      <img src="/images/tdj_logo.png" alt="탄단지도 로고" className="h-7 w-auto" />
+      <span className="text-[17px] font-bold tracking-tight">
+        <span className="text-[#49AFE6]">탄단지</span>
+        <span className="text-[#15803d]">도</span>
+      </span>
+    </button>
+  )
+}
+
+const LOGO = <LogoLink />
 
 export default function Header({ title, left = LOGO, right, className = 'bg-white px-4' }) {
   return (
