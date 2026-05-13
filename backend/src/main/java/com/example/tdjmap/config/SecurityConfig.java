@@ -59,9 +59,14 @@ public class SecurityConfig {
                         // 인증 불필요: 챗봇 추천·이미지 분석
                         .requestMatchers(HttpMethod.POST, "/chatbot/recommend").permitAll()
                         .requestMatchers(HttpMethod.POST, "/chatbot/analyze").permitAll()
-                        // 인증 불필요: 커뮤니티 게시글 조회
+                        // 인증 불필요: 커뮤니티 게시글/댓글 조회
                         .requestMatchers(HttpMethod.GET, "/posts").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts/*/comments").permitAll()
+                        // 인증 불필요: 제보 목록 조회
+                        .requestMatchers(HttpMethod.GET, "/reports").permitAll()
+                        // 인증 불필요: 매장 메뉴 제보 그룹 조회
+                        .requestMatchers(HttpMethod.GET, "/stores/*/menu-reports").permitAll()
                         // 관리자 전용
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // 리뷰·커뮤니티·기록·제보 등 나머지 모두 인증 필요

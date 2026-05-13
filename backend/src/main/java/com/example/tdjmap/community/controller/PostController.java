@@ -1,9 +1,12 @@
 package com.example.tdjmap.community.controller;
 
 import com.example.tdjmap.common.ApiResponse;
+import com.example.tdjmap.community.dto.CommentCreateRequest;
+import com.example.tdjmap.community.dto.CommentResponse;
 import com.example.tdjmap.community.dto.PostCreateRequest;
 import com.example.tdjmap.community.dto.PostLikeResponse;
 import com.example.tdjmap.community.dto.PostResponse;
+import com.example.tdjmap.community.service.CommentService;
 import com.example.tdjmap.community.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,12 +14,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/posts")
 @RequiredArgsConstructor
 public class PostController {
 
     private final PostService postService;
+    private final CommentService commentService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<PostResponse>>> getPosts(
@@ -51,5 +57,25 @@ public class PostController {
     @PostMapping("/{postId}/likes")
     public ResponseEntity<ApiResponse<PostLikeResponse>> toggleLike(@PathVariable Long postId) {
         return ResponseEntity.ok(ApiResponse.ok(postService.toggleLike(postId)));
+    }
+
+    @GetMapping("/{postId}/comments")
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(@PathVariable Long postId) {
+        return ResponseEntity.ok(ApiResponse.ok(commentService.getComments(postId)));
+    }
+
+    @PostMapping("/{postId}/comments")
+    public ResponseEntity<ApiResponse<CommentResponse>> createComment(
+            @PathVariable Long postId,
+            @RequestBody @Valid CommentCreateRequest req) {
+        return ResponseEntity.status(201).body(ApiResponse.created(commentService.createComment(postId, req)));
+    }
+
+    @DeleteMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId) {
+        commentService.deleteComment(postId, commentId);
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

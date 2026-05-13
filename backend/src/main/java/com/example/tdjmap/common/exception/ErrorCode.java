@@ -19,8 +19,13 @@ public enum ErrorCode {
     POST_NOT_FOUND(404, "게시글을 찾을 수 없습니다."),
     POST_FORBIDDEN(403, "게시글 삭제 권한이 없습니다."),
 
+    // Comment
+    COMMENT_NOT_FOUND(404, "댓글을 찾을 수 없습니다."),
+    COMMENT_FORBIDDEN(403, "댓글 삭제 권한이 없습니다."),
+
     // Report
     REPORT_NOT_FOUND(404, "제보를 찾을 수 없습니다."),
+    REPORT_VOTE_INVALID(400, "voteType은 UP 또는 DOWN이어야 합니다."),
 
     // Menu
     MENU_NOT_FOUND(404, "메뉴를 찾을 수 없습니다."),
