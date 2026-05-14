@@ -32,10 +32,13 @@ tdjmap/
 │   ├── controller/AuthController.java   POST /auth/kakao, POST /auth/refresh, DELETE /auth/logout
 │   ├── service/AuthService.java         카카오 Authorization Code 교환 → JWT 발급
 │   └── dto/  KakaoLoginRequest  TokenResponse  TokenRefreshRequest
-├── entity/                              Brand Menu Post PostLike Review ReviewLike
-│                                        Store User DietLog ExerciseLog ExerciseType Report SocialLogin
+├── entity/                              Brand Menu Post PostComment PostLike Review ReviewLike
+│                                        Store User DietLog ExerciseLog ExerciseType Report ReportVote
+│                                        SocialLogin WeightLog
 ├── repository/                          JpaRepository 확장 + StoreQueryRepository (Native SQL)
 │                                        ReviewLikeRepository — countByReviewIds(batch) / findLikedReviewIds(batch)
+│                                        PostCommentRepository — findByPostIdOrderByCreatedAtAsc(postId)
+│                                        ReportVoteRepository — countVotesByReportIds(batch) / findUserVotesByReportIds(batch)
 │                                        SocialLoginRepository.findByUser_IdAndProvider()
 ├── store/
 │   ├── controller/StoreController.java
@@ -46,17 +49,35 @@ tdjmap/
 ├── community/
 │   ├── controller/PostController.java
 │   ├── service/PostService.java
+│   ├── service/CommentService.java
 │   └── dto/  PostCreateRequest PostResponse PostLikeResponse PostLikeToggleRequest
+│             CommentCreateRequest CommentResponse
+│             ※ PostResponse: { postId, postType, title, content, imageUrl, likeCount, createdAt }
+│                — 익명 게시판이므로 authorId/nickname 미포함
+│             ※ CommentResponse: { commentId, content, createdAt, mine }
+│                — mine: 현재 로그인 사용자 작성 댓글이면 true
 ├── record/
 │   ├── controller/RecordController.java
 │   ├── service/DietRecordService.java
 │   ├── service/ExerciseRecordService.java
+│   ├── service/WeightLogService.java        getMyLogs() + createLog(User, double)
 │   └── dto/  DietLogCreateRequest DietLogResponse
 │             ExerciseLogCreateRequest ExerciseLogResponse ExerciseTypeResponse
+│             WeightLogResponse
 ├── report/
 │   ├── controller/ReportController.java
 │   ├── service/ReportService.java
-│   └── dto/  ReportCreateRequest ReportAdminResponse ReportStatusRequest
+│   └── dto/  ReportCreateRequest ReportPublicResponse ReportVoteRequest ReportVoteResponse
+│             ReportAdminResponse ReportStatusRequest
+├── user/
+│   ├── controller/UserController.java   GET /users/me, PUT /users/me
+│   ├── service/UserService.java
+│   └── dto/  UserResponse  UserUpdateRequest
+├── chatbot/
+│   ├── controller/ChatbotController.java  POST /chatbot/recommend, POST /chatbot/analyze
+│   ├── service/ChatbotService.java        HttpURLConnection 직접 사용 (RestClient 422 버그 회피)
+│   └── dto/  ChatRecommendRequest  ChatRecommendResponse
+│             NutritionAnalysisRequest  NutritionAnalysisResponse
 └── collector/
     └── FatSecretKrCrawler.java          fatsecret.kr Jsoup 크롤러
 ```
@@ -83,15 +104,35 @@ GET  /stores/search          지도 bbox + 필터로 마커 목록
   Query: sw_lat, sw_lng, ne_lat, ne_lng
          category (optional)
          q (optional) — 매장명/주소/브랜드명/메뉴명 키워드 검색 (LIKE, case-insensitive)
+  Response: List<StoreMarkerResponse>
+    storeId / brandId / storeName / address / latitude / longitude / category /
+    brandLogoUrl(null 가능) / rating(null 가능) / markerMacro(null 가능) /
+    reportCount(null 가능) / latestReportMacro(null 가능)
   ※ 영양소 필터(min_protein 등)는 프론트에서 처리 — 백엔드 파라미터 없음
 
 GET  /stores/{id}            매장 상세 (브랜드 포함, rating 포함)
 GET  /stores/{id}/menus      매장 전용 메뉴 + 브랜드 공통 메뉴 목록 (nutrition_info 등급/태그 포함)
 GET  /stores/{id}/reviews    리뷰 목록 (최신순, likeCount + liked 포함)
 GET  /stores/{id}/reviews/{reviewId}/likes   리뷰 좋아요 상태 (liked, likeCount)
+GET  /stores/{id}/menu-reports   해당 매장의 PENDING 제보를 메뉴별로 그룹화
+  인증 선택 (비로그인도 조회 가능, 로그인 시 myVote 포함)
+  Response: List<MenuReportGroupResponse>
+    { menuId?, menuName, reports: [ { reportId, carbs?, protein?, fat?, imageUrl?,
+      upVotes, downVotes, myVote?, createdAt } ] }
 
 GET  /posts                  게시글 목록  ?postType=&page=0&size=20
 GET  /posts/{id}             게시글 상세
+GET  /posts/{id}/comments    댓글 목록 (오래된 순)
+                             인증 선택 (비로그인 시 mine=false, 로그인 시 자기 댓글 mine=true)
+                             Response: List<CommentResponse>  { commentId, content, createdAt, mine }
+
+GET  /reports                PENDING 상태 제보 목록
+  Query: storeId (optional) — 특정 매장 제보만 필터
+  인증 선택 (비로그인 시 myVote null, 로그인 시 내 투표 포함)
+  Response: List<ReportPublicResponse>
+    { reportId, storeId?, storeName, storeAddress?, storeLat?, storeLon?,
+      menuId?, menuName, carbs?, protein?, fat?, imageUrl?,
+      upVotes, downVotes, myVote?, createdAt }
 
 GET  /images/**              업로드된 이미지 파일 서빙 (인증 불필요)
 
@@ -114,10 +155,20 @@ POST /posts                  게시글 작성  { postType, title, content, image
 DELETE /posts/{id}           게시글 삭제 (작성자 본인만 — 403 otherwise)
 GET  /posts/{id}/likes       좋아요 수 + 내 좋아요 여부
 POST /posts/{id}/likes       좋아요 토글  {}
+POST /posts/{id}/comments    댓글 작성  { content (max 500자) }
+                             Response 201: CommentResponse  { commentId, content, createdAt, mine: true }
+DELETE /posts/{id}/comments/{commentId}  댓글 삭제 (본인만 — 403 COMMENT_FORBIDDEN)
 
 GET  /diet-logs              날짜별 식단 조회  ?date=yyyy-MM-dd
-POST /diet-logs              식단 기록 저장  { foodName, mealType, logKcal, logCarbs, logProtein, logFat, logSugar, imgUrl?, ateAt }
-DELETE /diet-logs/{logId}    식단 기록 삭제 (본인만 — 403 otherwise)
+                             Response: List<DietLogResponse>
+                               { logId, menuId?, foodName?, mealType?, logKcal, logCarbs?,
+                                 logProtein?, logFat?, logSugar?, imgUrl?, ateAt }
+POST /diet-logs              식단 기록 저장
+                             Body: { menuId?, foodName, mealType, logKcal(필수), logCarbs?,
+                                     logProtein?, logFat?, logSugar?, imgUrl?, ateAt(필수) }
+                             ※ DB CHECK: menu_id IS NOT NULL OR food_name IS NOT NULL
+                             Response 201: DietLogResponse
+DELETE /diet-logs/{logId}    식단 기록 삭제 (본인만 — 403 FORBIDDEN)
 
 GET  /exercise-types         운동 종목 목록
 GET  /exercise-logs          날짜별 운동 조회  ?date=yyyy-MM-dd
@@ -126,10 +177,28 @@ POST /exercise-logs          운동 기록 저장  { typeId, title?, durationMin
 DELETE /exercise-logs/{id}   운동 기록 삭제 (본인만)
 
 GET  /users/me               내 프로필 조회
-PUT  /users/me               프로필 수정  { nickname?, height?, weight?, gender? }
+                             Response: { userId, nickname, role, height?, weight?, gender?, age?, createdAt }
+PUT  /users/me               프로필 수정  { nickname?, height?, weight?, gender?(M|F), age? }
+                             ※ weight 변경 시 weight_logs에 자동 기록
 
-POST /reports                영양정보 오류 신고  { storeName, menuName, carbs?, protein?, fat?, imageUrl? }
+GET  /weight-logs            내 체중 이력 전체 조회 (asc)  → List<WeightLogResponse>
+                             WeightLogResponse: { logId, weightKg, recordedAt }
+
+POST /reports                영양정보 오류 신고 (인증 필요)
+                             Body: { storeId?(기존 매장 ID), storeName(필수), storeAddress?,
+                                     storeLat?, storeLon?, menuName(필수),
+                                     carbs?, protein?, fat?, imageUrl? }
+                             ※ storeId 또는 (storeLat+storeLon)으로 기존 매장 자동 매칭 시도
+POST /reports/{reportId}/vote  제보 투표 토글 (인증 필요)
+                             Body: { voteType: "UP"|"DOWN" }
+                             동작: 같은 voteType이면 취소(DELETE), 다른 voteType이면 변경
+                             Response: ReportVoteResponse { upVotes, downVotes, myVote? }
+                             ※ upVotes - downVotes >= 5 → status=APPROVED + 자동 DB 반영
 GET  /admin/reports          신고 목록 (ADMIN role 필요)
+                             Response: List<ReportAdminResponse>
+                               { reportId, userId, userNickname, storeName, storeAddress?,
+                                 storeLat?, storeLon?, menuName, carbs?, protein?, fat?,
+                                 imageUrl?, status, createdAt }
 PATCH /admin/reports/{id}/status  신고 처리 상태 변경  { status: APPROVED|REJECTED }
 ```
 
@@ -144,9 +213,23 @@ Controller → Service → Repository
 ```
 
 - Service: 클래스에 `@Transactional(readOnly = true)`, 쓰기 메서드만 `@Transactional`
-- 기록 도메인은 식단/운동 책임을 `DietRecordService`, `ExerciseRecordService`로 분리한다. 컨트롤러만 `RecordController` 하나로 묶는다.
+- 기록 도메인은 `DietRecordService`, `ExerciseRecordService`, `WeightLogService`로 책임 분리한다. 컨트롤러만 `RecordController` 하나로 묶는다.
+- `WeightLogService.createLog(User, double)`은 `UserService.updateMe()`에서도 호출된다 (체중 수정 시 자동 기록).
 - DI: `@RequiredArgsConstructor` + `final` 필드
 - 응답: 항상 `ResponseEntity<ApiResponse<T>>`
+
+```java
+// 조회 — 200
+return ResponseEntity.ok(ApiResponse.ok(data));
+
+// 생성 — 201
+return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.created(response));
+
+// 삭제 / data 없음 — 200
+return ResponseEntity.ok(ApiResponse.ok(null));
+```
+
 - 예외: `throw new BusinessException(ErrorCode.XXX)` — 직접 RuntimeException 사용 금지
 
 ### SecurityUtil 사용 규칙
@@ -247,7 +330,7 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 └── reviews/                ← 리뷰 첨부         (reviews.image_url — 컬럼 추가 예정)
 ```
 
-현재 이미지 URL 컬럼: `stores.image_url`, `posts.image_url`, `reports.image_url`.
+현재 이미지 URL 컬럼: `stores.image_url`, `posts.image_url`, `reports.image_url`, `menus.menu_url`.
 
 - URL 패턴: `http://localhost:8080/images/{domain}/{uuid}.ext`
 - 파일명: UUID 자동 생성 — 충돌 없음, 경로 추측 불가
@@ -263,7 +346,9 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 | menus | 503건 | fatsecret.kr 크롤링 |
 | stores | 174건 | PostGIS EPSG:5179→4326 변환 |
 | post_likes | — | UNIQUE(post_id, user_id) |
+| post_comments | — | post_id FK + CASCADE DELETE |
 | review_likes | — | UNIQUE(review_id, user_id) |
+| report_votes | — | UNIQUE(report_id, user_id), vote_type CHECK('UP'\|'DOWN') |
 
 ### 주요 테이블 상세
 

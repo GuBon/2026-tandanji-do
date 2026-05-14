@@ -11,7 +11,7 @@
 src/
 ├── api/               apiClient.js storeApi.js recordApi.js reportApi.js
 │                      imageApi.js   — POST /images/upload (multipart, JWT 자동 주입)
-│                      postApi.js    — GET/POST/DELETE /posts + 좋아요 상태/토글
+│                      postApi.js    — GET/POST/DELETE /posts, 좋아요, 댓글 CRUD
 │                      chatbotApi.js — POST /chatbot/recommend, POST /chatbot/analyze
 │                      userApi.js    — GET/PUT /users/me
 ├── components/        PageLayout Header BottomNavBar Button NutritionCell
@@ -27,8 +27,10 @@ src/
 │   │                  useLocationPixel — 내 위치 픽셀 좌표 추적
 │   ├── record/        RecordPage(탭) DietTab ExerciseTab useDiet useExercise + 모달들
 │   │                  DietRecordPage — 식단 상세 기록 페이지 (/diet)
+│   │                  DashboardPage — 영양/운동 분석 대시보드 (/record/dashboard)
+│   │                  useDashboard — 기간별 칼로리+체중 집계 훅
 │   ├── chatbot/       ChatbotPage useChatbot
-│   ├── community/     CommunityPage PostCreatePage PostDetailPage
+│   ├── community/     CommunityPage PostCreatePage PostDetailPage PostComments
 │   └── user/          BodyProfilePage — 신장/체중 수정 (/profile/body)
 └── store/             useAuthStore useDietStore useMapStore useExerciseStore
 ```
@@ -42,7 +44,8 @@ src/
 /map/store/:id          MapStorePage
 /diet                   DietRecordPage     (식단 상세 기록)
 /record                 RecordPage         (식단/운동 탭)
-/profile/body           BodyProfilePage    (신장/체중 수정)
+/record/dashboard       DashboardPage      (영양/운동 분석 대시보드)
+/profile/body           BodyProfilePage    (신장/체중·성별·나이 수정)
 /chatbot                ChatbotPage
 /community              CommunityPage
 /community/create       PostCreatePage
@@ -158,13 +161,22 @@ on-surface:  #2b3437
 ```jsx
 const [imageUrl, setImageUrl] = useState(null)
 <ImageUploader domain="diet" onChange={setImageUrl} aspectRatio="4/3" />
+
+// aspectRatio={null} → 이미지 원본 비율 그대로 표시 (고정 높이 없음)
+<ImageUploader domain="posts" onChange={setImageUrl} aspectRatio={null} />
+
+// onFile: 파일 선택 즉시 호출 (업로드 완료 전) — 챗봇 즉시 미리보기 등에 활용
+<ImageUploader domain="diet" onFile={setRawFile} onChange={setImageUrl} aspectRatio="4/3" />
 ```
 
 - `domain`: 백엔드 `POST /images/upload?domain=xxx` 파라미터 — `'diet' | 'posts' | 'reports'` 등
 - `onChange(url | null)`: 업로드 완료 시 URL 전달, ✕ 버튼으로 제거 시 null 전달
-- `aspectRatio`: CSS aspect-ratio 문자열 (기본 `'4/3'`)
+- `onFile(file | null)`: 파일 선택 즉시(업로드 전) 호출, ✕ 버튼으로 제거 시 null 전달 (선택 prop)
+- `aspectRatio`: CSS aspect-ratio 문자열 (기본 `'4/3'`). `null`이면 이미지 원본 비율로 표시
+- `className`: 루트 div에 추가할 Tailwind 클래스 (선택)
 - 파일 선택 즉시 ObjectURL 미리보기 → 업로드 완료 후 실제 서버 URL로 교체
 - 업로드 실패 시 미리보기 제거 + 에러 메시지 표시
+- 허용 포맷: jpeg / png / webp / gif
 - 업로드 API: `src/api/imageApi.js`의 `uploadImage(file, domain)` — Content-Type 직접 지정 금지 (FormData 자동 처리)
 
 ### NutritionCell
@@ -241,13 +253,28 @@ npm run preview  # 빌드 결과 미리보기
 
 ```js
 // GET /stores/search → normalizeMarker()
-{ id, name, category, lat, lon, grade, tags: string[], nutrition: { carbs, protein, fat } }
-// grade: 'GREEN' | 'YELLOW' | 'RED' | null  // null = 메뉴 정보 미등록 (회색 마커)
-// tags: ['고단백', '저탄수', '저지방'] — 프론트 파생 (protein≥25→고단백, carbs≤40→저탄수, fat≤10→저지방)
+{
+  id, name, address, category, lat, lon,
+  brandLogoUrl,  // brands.logo_url (null 가능)
+  rating,        // 리뷰 평균 별점 (null 가능)
+  grade,         // 'GREEN' | 'YELLOW' | 'RED' | null  — null = 메뉴 정보 미등록 (회색 마커)
+  tags,          // string[] — nutrition_info.tags 우선, 없으면 프론트 파생
+  nutrition: { carbs: '45g', protein: '20g', fat: '10g' },  // 표시용 문자열
+  raw:       { carbs: 45,    protein: 20,    fat: 10    },   // 필터용 숫자
+}
+// 프론트 파생 태그 규칙 (nutritionTags 없을 때):
+//   protein≥25 → 고단백, carbs≤40 → 저탄수, carbs≥80 → 고탄수, fat≤10 → 저지방, fat≥25 → 고지방
 
 // GET /stores/{id} + /menus → normalizeStoreDetail()
-{ id, name, category, address, lat, lon, image, grade, tags, nutrition, menus: MenuItem[] }
-// image: stores.imageUrl 우선, 없으면 brand.logoUrl 폴백
+{
+  id, name, category, address, lat, lon,
+  image,   // stores.imageUrl (null 가능 — 프론트에서 브랜드 로고로 fallback)
+  rating,  // null
+  grade,   // null (상세는 메뉴별 grade 사용)
+  tags,    // []
+  nutrition: { carbs: '--', protein: '--', fat: '--' },
+  menus: MenuItem[]
+}
 // MenuItem: {
 //   id, name, description, price, imageUrl,
 //   grade: 'GREEN' | 'YELLOW' | 'RED' | null,
@@ -268,6 +295,30 @@ fetchExerciseTypes()               // GET /exercise-types
 fetchExerciseLogs(date)            // GET /exercise-logs?date=yyyy-MM-dd
 createExerciseLog(payload)         // POST /exercise-logs — caloriesBurned는 보내지 않음, 서버 계산값 사용
 deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
+
+fetchWeightLogs()                  // GET /weight-logs — 전체 체중 이력 (asc)
+                                   // 반환: [{ logId, weightKg, recordedAt }]
+                                   // 기간 필터링은 useDashboard에서 startTs로 클라이언트 처리
+
+toLocalDateTimeStr()               // 현재 시각을 로컬 datetime 문자열로 반환 (식단기록 ateAt 필드에 사용)
+```
+
+### 커뮤니티 API 함수 (postApi.js)
+
+```js
+fetchPosts({ postType, page, size })    // GET /posts
+fetchPost(postId)                       // GET /posts/{postId}
+createPost(payload)                     // POST /posts
+deletePost(postId)                      // DELETE /posts/{postId}
+fetchPostLikeStatus(postId)             // GET /posts/{postId}/likes
+togglePostLike(postId)                  // POST /posts/{postId}/likes
+
+fetchComments(postId)                   // GET /posts/{postId}/comments → CommentItem[]
+createComment(postId, content)          // POST /posts/{postId}/comments → CommentItem
+deleteComment(postId, commentId)        // DELETE /posts/{postId}/comments/{commentId}
+
+// CommentItem: { commentId, content, createdAt, mine }
+// mine: 현재 로그인 사용자 작성 댓글이면 true → 삭제 버튼 표시 조건
 ```
 
 ---
@@ -293,8 +344,11 @@ deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
 ✅ 이미지 업로드 연동 (제보하기·식단기록·커뮤니티 글 작성)
 ✅ 커뮤니티 게시글 POST /posts 제출 연동 (PostCreatePage)
 ✅ 커뮤니티 게시글 목록/상세 GET /posts 연동
+✅ 커뮤니티 댓글 CRUD 연동 (PostComments.jsx — 익명, mine 플래그로 자기 댓글 삭제)
 ✅ 커뮤니티 좋아요 상태/토글 연동 (비로그인 클릭 시 AuthRequiredModal)
 ✅ 사용자 프로필 조회 GET /users/me 연동 (AuthGuard 로그인 후 자동 로드)
+✅ 분석 대시보드 — BMR 카드, 오늘 링 차트, 순 칼로리 막대, 섭취/소비 꺾은선, 체중 변화 차트
+✅ 체중 이력 GET /weight-logs 연동 + 기간 토글 [7일/30일/전체]
 ✅ 사용자 프로필 수정 UI → PUT /users/me 연동 (BodyProfilePage.jsx)
 ✅ 챗봇 AI 연동 — 메뉴 추천 / 이미지 영양성분 분석 / 식단 기록 추가 / 추천 카드 → 지도 이동
 ✅ 매장 상세 리뷰 작성/좋아요 연동 (useStoreDetail)

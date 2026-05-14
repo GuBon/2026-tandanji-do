@@ -98,7 +98,72 @@ useGeolocation → setLatLon → useMapStore.latLon
 
 - `MapPage.jsx`는 **컴포넌트 조합과 훅 연결**만 담당한다. 비즈니스 로직은 훅으로 분리.
 - 모달/바텀시트는 `overflow-hidden` 부모 바깥에서 렌더링한다 (`MapPage` 최하단, `fixed` 포지션).
+- `StoreCard({ store, onClose, onRoute })`: `onRoute` — "길찾기" 버튼 클릭 시 `RouteBottomSheet` 열기. 썸네일은 `store.brandLogoUrl`, 메타는 `address / distance / walkTime / kcal / rating` 표시.
 - `StoreCard`, `FilterBottomSheet`, `ReportModal`의 내부 상태는 외부 store에 올리지 않는다 (순수 UI 상태).
+
+### ReportVoteCard — 공유 투표 카드
+
+`ReportVoteCard.jsx`는 `VotingBottomSheet`와 `ReportClusterBottomSheet` 양쪽에서 사용하는 공유 컴포넌트다.
+
+**레이아웃 (`StoreCard` 형식 기준)**:
+- **1행**: 메뉴명 (`text-[17px] font-bold`, line-clamp-2) + 날짜 (`text-[10px]`, 오른쪽 정렬)
+- **2행**: `w-20 h-20 rounded-2xl` 이미지 + `NutritionCell` (단백질/탄수화물/지방, `flex-1 py-1`) + 찬성/반대 버튼
+
+```jsx
+<ReportVoteCard report={report} onVote={handleVote} />
+```
+
+- `report`: `{ reportId, menuName, imageUrl, protein, carbs, fat, upVotes, downVotes, myVote, createdAt }`
+- `onVote(reportId, 'UP'|'DOWN')`: Promise 반환 — 카드 내부에서 optimistic update 처리
+- 이미지 없을 때: 회색 박스 + "사진" 텍스트 placeholder
+- Optimistic update: `optimistic` state로 서버 응답 전 카운트 즉시 반영, 실패 시 롤백
+
+### VotingBottomSheet — 매장 지도 이동
+
+`VotingBottomSheet`의 매장 그룹 헤더는 클릭 가능한 `<button>`이다.
+
+```
+grouped 구조: { storeName, storeAddress, storeLat, storeLon, storeId, items[] }
+헤더 클릭 → onNavigate?.(group) + onClose()
+```
+
+- `storeLat`/`storeLon`이 있는 그룹만 클릭 가능 (오른쪽 파란 chevron 표시)
+- 좌표 없는 그룹: `disabled` (클릭 불가, chevron 미표시)
+- `MapPage.jsx`에서 `onNavigate({ storeLat, storeLon })` → `fromLonLat([storeLon, storeLat])` → `moveTo(x, y, 17)` + 시트 닫힘
+- 각 제보 카드는 `ReportVoteCard` 공유 컴포넌트 사용 (`imageUrl` 포함)
+
+### ReportModal — AI 영양성분 분석
+
+`ReportModal.jsx` + `useReport.js` 조합으로 동작한다.
+
+**폼 섹션 순서** (UX 원칙: 버튼 아래쪽 필드가 자동 채워지는 구조 유지):
+1. 매장명 검색 (카카오 장소 API)
+2. 이미지 첨부 + **AI 영양성분 분석 버튼**
+3. 메뉴명 ← AI가 자동 채움
+4. 영양성분(탄/단/지) ← AI가 자동 채움
+
+**AI 분석 흐름**:
+```
+ImageUploader onFile={setAiFile}   ← 파일 선택 즉시 File 객체 확보 (업로드 URL과 별개)
+    ↓  버튼 클릭
+fileToDataUrl(aiFile)              ← FileReader로 base64 Data URL 변환
+    ↓
+POST /chatbot/analyze { image: dataUrl }
+    ↓  data.menuName != null 이면 success
+setFieldValue('menuName', data.menuName)
+setFieldValue('carbs'|'protein'|'fat', String(value))
+AiNutritionModal(success|fail)
+```
+
+**`useReport` API**:
+- `setField(key)` — input onChange 이벤트 핸들러 반환 (이벤트 객체 필요)
+- `setFieldValue(key, value)` — 값을 직접 지정 (AI 자동 채우기 등 이벤트 없는 경우)
+
+**`ImageUploader` 두 가지 prop 구분**:
+- `onChange={setImageUrl}` — 업로드 완료 후 서버 URL (제보 제출 시 사용)
+- `onFile={setAiFile}` — 선택 즉시 File 객체 (AI 분석용 base64 변환에 사용)
+
+**AiNutritionModal**: `features/record/AiNutritionModal.jsx`를 공유. `success` prop으로 성공/실패 분기.
 
 ### MapMarker — 2단계 표시
 
@@ -142,8 +207,12 @@ useEffect(() => {
 - 매장 데이터: `src/api/storeApi.js` — `GET /stores/search` (bbox + keyword 기반 마커 목록), `GET /stores/{id}` + `/menus` (상세/메뉴)
 - `useMapStores` 훅이 `mapInstance.moveend` 이벤트마다 bbox를 추출해 API 호출
 - 빠른 이동/필터 변경 시 오래된 검색 응답이 최신 마커를 덮지 않도록 `AbortController` 패턴 유지
-- 마커 포맷: `{ id, name, category, lat, lon, grade, tags, nutrition: { carbs, protein, fat } }` — `normalizeMarker()`가 변환
-- `grade`: `'GREEN' | 'YELLOW' | 'RED' | null` — null은 메뉴 정보 미등록
+- 마커 포맷: `{ id, name, address, category, lat, lon, brandLogoUrl, rating, grade, tags, nutrition, raw }` — `normalizeMarker()`가 변환
+  - `grade`: `'GREEN' | 'YELLOW' | 'RED' | null` — null은 메뉴 정보 미등록
+  - `brandLogoUrl`: 브랜드 로고 URL (null 가능) — StoreCard 썸네일 이미지로 사용
+  - `rating`: 리뷰 평균 별점 float (null 가능)
+  - `address`: 매장 주소 문자열
+- 태그 파생 규칙 (`nutritionTags` 없을 때): protein≥25→고단백, carbs≤40→저탄수, carbs≥80→고탄수, fat≤10→저지방, fat≥25→고지방
 - 메뉴 포맷: `nutrition`은 표시용 문자열(`"45g"`), `raw`는 정렬용 숫자(`45`) — 둘 다 항상 함께 제공
 - `category` 값: `'샐러드' | '포케' | '한식뷔페'`
 
@@ -188,11 +257,37 @@ const visibleStores = useMemo(() => {
 ### MapStorePage 메뉴 탭 기능
 
 - `MapStorePage.jsx`는 상세 페이지 조립만 담당한다.
-- 상세 데이터 로딩/거리 병합/리뷰는 `useStoreDetail.js`, 히어로/정보/탭/메뉴/리뷰 UI 묶음은 `StoreDetailSections.jsx`가 담당한다.
-- `useStoreDetail` 반환값: `{ store, reviews, loading, error, submitReview, toggleReviewLike }`
+- 상세 데이터 로딩/거리 병합/리뷰는 `useStoreDetail.js`, UI 묶음은 `StoreDetailSections.jsx`가 담당한다.
+- `useStoreDetail` 반환값: `{ store, reviews, loading, error, submitReview, toggleReviewLike, reviewSubmitting, reviewError }`
+
+**StoreDetailSections.jsx 내보내는 컴포넌트/상수**:
+```
+StoreHero({ store, onBack, onShare })
+  — 16:9 히어로 이미지 + 뒤로/공유 버튼
+
+StoreInfoSection({ store })
+  — 매장명/카테고리/주소/거리/도보시간/칼로리/rating/태그 표시
+
+StoreTabs({ activeTab, onChange })
+  — '메뉴' / '리뷰' 탭 전환
+
+MenuToolbar({ gradeFilter, onGradeChange, sortKey, onSortChange })
+  — grade 필터 칩(전체/GREEN/YELLOW/RED) + 정렬 드롭다운
+
+StoreDetailContent({
+  activeTab, store, reviews, gradeFilter, sortKey,
+  onCreateReview, onToggleReviewLike, reviewSubmitting, reviewError
+})
+  — 메뉴 탭: MenuItem 목록 (grade 필터 + raw 숫자 정렬)
+  — 리뷰 탭: ReviewComposer + ReviewItem 목록
+
+SORT_OPTIONS  — [{ key: 'protein'|'carbs'|'fat', label }]
+```
+
 - **grade 필터**: 전체 / 🟢 우수(GREEN) / 🟡 보통(YELLOW) / 🔴 주의(RED) — 메뉴 카드 배경·테두리도 grade별 색상
 - **정렬 드롭다운**: 단백질순 / 탄수화물순 / 지방순 — `menu.raw[key]` 숫자로 내림차순 정렬
 - 정렬은 `nutrition` 문자열이 아닌 `raw` 숫자로 해야 함 — 문자열 비교 시 정렬 불작동
+- 리뷰: `ReviewComposer`(별점 + textarea + 등록), `ReviewItem`(닉네임/날짜/좋아요 토글)
 
 ### TMap 경로 안내 (RouteBottomSheet)
 
@@ -236,7 +331,7 @@ const locationPixel = useLocationPixel()
 
 ---
 
-## ❌ 금지 사항
+## DO / DON'T
 
 - `MapView.jsx` 밖에서 `new Map(...)` 생성 금지.
 - `window.__tdjmap__` 외부에서 직접 수정 금지 (`useMcpHost.js`에서만 관리).
