@@ -107,7 +107,14 @@ Response 200:
       "carbs": 45,
       "protein": 28,
       "fat": 12,
-      "nutritionGrade": "GREEN"
+      "nutritionGrade": "GREEN",
+      "nutritionTags": ["고단백"]
+    },
+    "reportCount": 2,           // PENDING 제보 수 (0이면 null, @JsonInclude(NON_NULL))
+    "latestReportMacro": {      // 최신 PENDING 제보 영양성분 (없으면 null)
+      "carbs": 50,
+      "protein": 30,
+      "fat": 10
     }
   }
 ]
@@ -152,6 +159,35 @@ Response 200:
     "nutritionTags": ["고단백"]
   }
 ]
+```
+
+#### `GET /stores/{storeId}/menu-reports` — 매장 메뉴별 제보 그룹
+
+```
+인증 불필요 (투표 수), JWT 제공 시 myVote 포함
+
+Response 200:
+[
+  {
+    "menuId": 5,              // null 가능 — menus 테이블 미매칭 제보
+    "menuName": "야채 토스트",
+    "reports": [
+      {
+        "reportId": 10,
+        "carbs": 60,
+        "protein": 10,
+        "fat": 15,
+        "imageUrl": "http://localhost:8080/images/reports/uuid.jpg",
+        "upVotes": 5,
+        "downVotes": 2,
+        "myVote": "UP",      // null | "UP" | "DOWN"
+        "createdAt": "2026-05-13T10:00:00"
+      }
+    ]
+  }
+]
+
+조회 범위: status = 'PENDING' 제보만, menuId 또는 menuName 기준으로 그룹핑
 ```
 
 #### `GET /stores/{storeId}/reviews` — 리뷰 목록 (최신순)
@@ -373,6 +409,7 @@ Response 200: { status: 200, data: null }
 Header: Authorization: Bearer <jwt>
 Body:
 {
+  "storeId": 1,    // optional — 매장 ID (DB 매장에 자동 연결)
   "storeName": "이삭토스트 인하대점",
   "menuName": "야채 토스트",
   "carbs": 60,     // optional
@@ -382,6 +419,65 @@ Body:
 }
 
 Response 200: { status: 200, data: null }
+
+동작:
+  - storeId 있으면 reports.store_id FK 설정
+  - menuName과 storeId로 menus 테이블에서 매칭되는 menu_id 자동 연결
+  - 초기 status: PENDING
+```
+
+#### `GET /reports` — 공개 제보 목록 (투표용)
+
+```
+인증 불필요 (투표 수), JWT 제공 시 myVote 포함
+Query Params:
+  storeId  (Long, 선택) — 특정 매장의 PENDING 제보만 조회
+
+Response 200:
+[
+  {
+    "reportId": 10,
+    "storeId": 1,
+    "storeName": "이삭토스트 인하대점",
+    "storeAddress": "인천시 미추홀구 ...",
+    "menuId": 5,           // null 가능 — 메뉴 미매칭 시
+    "menuName": "야채 토스트",
+    "carbs": 60,
+    "protein": 10,
+    "fat": 15,
+    "imageUrl": "http://localhost:8080/images/reports/uuid.jpg",
+    "upVotes": 5,
+    "downVotes": 2,
+    "myVote": "UP",        // null | "UP" | "DOWN" (JWT 없으면 null)
+    "createdAt": "2026-05-13T10:00:00"
+  }
+]
+
+조회 범위: status = 'PENDING' 제보만
+```
+
+#### `POST /reports/{reportId}/vote` — 제보 투표 (찬성/반대)
+
+```
+Header: Authorization: Bearer <jwt>
+Body:
+{
+  "voteType": "UP"   // "UP" | "DOWN"
+}
+
+Response 200:
+{
+  "upVotes": 6,
+  "downVotes": 2,
+  "myVote": "UP"     // null | "UP" | "DOWN"
+}
+
+동작 (toggle):
+  - 이전 투표 없음 → INSERT (voteType 설정)
+  - 같은 voteType 재투표 → DELETE (취소, myVote → null)
+  - 다른 voteType 투표 → UPDATE (전환)
+에러: 400 — voteType이 UP/DOWN 외의 값
+      404 — 존재하지 않는 reportId
 ```
 
 #### `GET /admin/reports` — 신고 목록 조회 (관리자 전용)
@@ -659,3 +755,4 @@ Response 200:
 | 2026-05-07 | POST CRUD 4개 + PUT /users/me + POST /images/upload 구현 완료 → ✅ 이동. 미구현 → 이미지 컬럼 2개로 축소 | 백엔드 에이전트 |
 | 2026-05-08 | POST /chatbot/recommend 구현 완료 (AI API 연계, 서버 간 HTTP) | 백엔드 에이전트 |
 | 2026-05-11 | POST /chatbot/analyze 누락 추가 → ✅, POST /diet-logs imgUrl? 필드 누락 추가 | API 계약 에이전트 |
+| 2026-05-13 | 투표 기능 추가: GET /reports, POST /reports/{id}/vote, GET /stores/{id}/menu-reports → ✅, POST /reports body에 storeId 추가, GET /stores/search 응답에 reportCount/latestReportMacro 추가 | API 계약 에이전트 |

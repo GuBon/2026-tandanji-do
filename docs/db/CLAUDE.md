@@ -30,7 +30,7 @@ docker compose exec -T postgis psql -U tandanji -d tandanji
 
 - 최종 스키마 초안: `sql/ddl/Script.sql`
 - 개발 DB 초기화/프로비저닝: `sql/ddl/001_provision_dev_db.sql`
-- 개발 시드: `sql/insert/001_seed_dev_db.sql`, `sql/insert/tdj_data_dump.sql`
+- 개발 시드: `sql/insert/001_seed_dev_db.sql`, `sql/insert/tdj_data.sql`
 
 스키마가 바뀌면 실제 Docker DB와 `sql/ddl/Script.sql`을 둘 다 확인한다.
 
@@ -42,16 +42,20 @@ docker compose exec -T postgis psql -U tandanji -d tandanji
 |--------|------|
 | brands | 브랜드, `logo_url` |
 | stores | 매장 위치, 주소, 카테고리, `image_url` |
-| menus | 메뉴 + 영양소 + `menu_url` + `nutrition_info` JSONB |
+| menus | 메뉴 + 영양소 + `menu_url` + `nutrition_info` JSONB (generated stored) |
 | users | 사용자 프로필, role |
 | social_logins | 카카오 OAuth, refresh token |
-| diet_logs | 식단 기록, `img_url` |
+| diet_logs | 식단 기록, `img_url`, `menu_id?`(Menu FK), `store_id?`(Store FK) |
 | exercise_types | 운동 종목 + MET |
 | exercise_logs | 운동 기록, 서버 계산 칼로리 |
 | reviews | 매장 리뷰 |
+| review_likes | 리뷰 좋아요, `UNIQUE(review_id, user_id)` |
 | posts | 커뮤니티 게시글, `image_url` |
 | post_likes | 게시글 좋아요, `UNIQUE(post_id, user_id)` |
-| reports | 영양정보 오류 제보, `image_url` |
+| post_comments | 게시글 댓글, `CASCADE DELETE` on post_id |
+| reports | 영양정보 오류 제보, `image_url`, `brand_id?` / `store_id?` / `menu_id?` FK |
+| report_votes | 제보 투표, `UNIQUE(report_id, user_id)`, `vote_type CHECK('UP'\|'DOWN')` |
+| weight_logs | 사용자 체중 이력 (`PUT /users/me` weight 변경 시 자동 기록) |
 
 ---
 
@@ -61,14 +65,43 @@ docker compose exec -T postgis psql -U tandanji -d tandanji
 -- menus: 브랜드 메뉴 또는 표준 데이터 중 하나는 필수
 CHECK (brand_id IS NOT NULL OR is_standard = TRUE)
 
+-- menus: nutrition_info는 DB 생성 컬럼 (앱에서 INSERT/UPDATE 불필요)
+nutrition_info JSONB GENERATED ALWAYS AS (analyze_nutrition(carbs, protein, fat)) STORED
+
+-- diet_logs: menu_id 또는 food_name 중 하나는 필수
+CHECK (menu_id IS NOT NULL OR food_name IS NOT NULL)
+
 -- reviews: 별점 범위
 CHECK (star BETWEEN 1 AND 5)
 
 -- post_likes: 중복 좋아요 방지
 UNIQUE (post_id, user_id)
 
--- stores: bbox 검색
-CREATE INDEX idx_stores_lat_lng ON tandanji.stores (latitude, longitude);
+-- post_comments: 게시글 삭제 시 댓글 연쇄 삭제
+FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+
+-- review_likes: 중복 좋아요 방지
+UNIQUE (review_id, user_id)
+
+-- report_votes: 사용자당 제보당 1표
+UNIQUE (report_id, user_id)
+CHECK vote_type IN ('UP', 'DOWN')
+FOREIGN KEY (report_id) REFERENCES reports(report_id) ON DELETE CASCADE
+
+-- weight_logs 구조
+CREATE TABLE tandanji.weight_logs (
+    log_id      BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT         NOT NULL REFERENCES tandanji.users(user_id),
+    weight_kg   NUMERIC(5, 1)  NOT NULL,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- stores: bbox 검색 (latitude, longitude 인덱스)
+CREATE INDEX idx_stores_location ON tandanji.stores (latitude, longitude);
+
+-- stores, menus: 이름 LIKE 검색 (trigram)
+CREATE INDEX idx_stores_name_trgm ON tandanji.stores USING GIN (lower(store_name) gin_trgm_ops);
+CREATE INDEX idx_menus_name_trgm  ON tandanji.menus  USING GIN (lower(menu_name)  gin_trgm_ops);
 ```
 
 ---
@@ -151,4 +184,17 @@ CREATE TABLE IF NOT EXISTS tandanji.{table_name} (
 □ reviews.image_url
 □ 사용자별 칼로리/매크로 목표 테이블
 □ 챗봇 대화 저장 테이블
+```
+
+### 구현 완료된 추가 컬럼
+
+```sql
+-- users 테이블에 추가됨
+ALTER TABLE tandanji.users ADD COLUMN age INTEGER;
+-- gender 컬럼은 최초 스키마에 포함
+
+-- diet_logs 테이블에 추가됨
+-- menu_id BIGINT REFERENCES menus(menu_id) — 챗봇 분석 후 메뉴 연결
+-- store_id BIGINT REFERENCES stores(store_id) — 미래 확장용 (현재 서비스 미사용)
+-- CHECK (menu_id IS NOT NULL OR food_name IS NOT NULL)
 ```
