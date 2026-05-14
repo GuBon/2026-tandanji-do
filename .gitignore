@@ -3,8 +3,7 @@
 
 .env.*
 
-CLAUDE.md
-**/CLAUDE.md
+
 *.log
 **/*.log
 *.log.*
