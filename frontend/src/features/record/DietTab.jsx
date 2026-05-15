@@ -7,6 +7,7 @@ import HistoryModal from './HistoryModal.jsx'
 import AuthRequiredModal from '../../components/AuthRequiredModal.jsx'
 import useAuthStore from '../../store/useAuthStore.js'
 import { useAuthRequired } from '../../hooks/useAuthRequired.js'
+import BodyMetricSummary from './BodyMetricSummary.jsx'
 
 const CALORIE_GOAL = 2000
 const MACRO_GOALS = { carbs: 320, protein: 180, fat: 75 }
@@ -50,33 +51,7 @@ export default function DietTab() {
 
   return (
     <div className="flex flex-col gap-6 px-5 py-5 pb-28">
-      {/* 신장 / 체중 */}
-      <div className="relative flex items-center justify-center px-1">
-        <div className="flex gap-6">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-bold text-outline">신장</span>
-            <span className="text-lg font-bold font-headline text-on-surface">
-              {user?.height ?? '—'}
-              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">cm</span>
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1.5 border-l border-outline-variant/30 pl-6">
-            <span className="text-xs font-bold text-outline">체중</span>
-            <span className="text-lg font-bold font-headline text-on-surface">
-              {user?.weight ?? '—'}
-              <span className="text-[10px] font-normal text-outline-variant ml-0.5 uppercase">kg</span>
-            </span>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleBodyEdit}
-          className="absolute right-1 px-1 text-base leading-none"
-          aria-label="신장 체중 수정"
-        >
-          ✏️
-        </button>
-      </div>
+      <BodyMetricSummary height={user?.height} weight={user?.weight} onEdit={handleBodyEdit} />
 
       <CalorieHeroCard label="오늘의 섭취 칼로리" value={dailyCalories} />
 

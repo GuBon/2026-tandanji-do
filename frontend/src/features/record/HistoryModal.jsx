@@ -3,41 +3,13 @@ import BottomSheet from '../../components/BottomSheet.jsx'
 import ExerciseActivityCard from './ExerciseActivityCard.jsx'
 import DietMealCard from './DietMealCard.jsx'
 import { fetchDietLogs, fetchExerciseLogs } from '../../api/recordApi.js'
-
-const TYPE_EMOJIS = {
-  '사이클': '🚴', '수영': '🏊', '자전거': '🚲', '헬스': '🏋️',
-  '런닝': '🏃', '줄넘기': '🪢', '필라테스': '🧘', '기타': '···',
-}
+import { toDietRecordItem, toExerciseRecordItem } from './recordMappers.js'
 
 function formatDate(date) {
   const today = new Date()
   const isToday = date.toDateString() === today.toDateString()
   if (isToday) return '오늘'
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
-function toDietItem(log) {
-  return {
-    id: String(log.logId),
-    name: log.foodName || '(메뉴)',
-    calories: log.logKcal || 0,
-    carbs: log.logCarbs || 0,
-    protein: log.logProtein || 0,
-    fat: log.logFat || 0,
-    imgUrl: log.imgUrl ?? null,
-  }
-}
-
-function toExerciseItem(log) {
-  return {
-    id: String(log.exerciseId),
-    name: log.typeName,
-    detail: log.title || log.typeName,
-    duration: log.durationMin,
-    unit: 'min',
-    calories: log.caloriesBurned,
-    emoji: TYPE_EMOJIS[log.typeName] ?? '🏃',
-  }
 }
 
 export default function HistoryModal({ type, onClose }) {
@@ -60,7 +32,7 @@ export default function HistoryModal({ type, onClose }) {
         const groups = results
           .map((logs, i) => ({
             date: formatDate(dates[i]),
-            items: isDiet ? logs.map(toDietItem) : logs.map(toExerciseItem),
+            items: isDiet ? logs.map(toDietRecordItem) : logs.map(toExerciseRecordItem),
           }))
           .filter((g) => g.items.length > 0)
         setHistory(groups)

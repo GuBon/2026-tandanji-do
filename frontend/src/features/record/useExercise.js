@@ -6,32 +6,7 @@ import {
   createExerciseLog,
   deleteExerciseLog,
 } from '../../api/recordApi.js'
-
-// typeId → emoji 매핑 (exercise_types 테이블 순서 기준)
-const TYPE_EMOJIS = {
-  '사이클': '🚴',
-  '수영': '🏊',
-  '자전거': '🚲',
-  '헬스': '🏋️',
-  '런닝': '🏃',
-  '줄넘기': '🪢',
-  '필라테스': '🧘',
-  '기타': '···',
-}
-
-function toStoreShape(log) {
-  return {
-    id: String(log.exerciseId),
-    name: log.typeName,
-    detail: log.title || log.typeName,
-    duration: log.durationMin,
-    unit: 'min',
-    calories: log.caloriesBurned,
-    emoji: TYPE_EMOJIS[log.typeName] ?? '🏃',
-    typeId: log.typeId,
-    exerciseId: log.exerciseId,
-  }
-}
+import { getExerciseTypeEmoji, toExerciseRecordItem } from './recordMappers.js'
 
 export function useExercise() {
   const { exercises, addExercise, setExercises, removeExercise } = useExerciseStore()
@@ -47,7 +22,7 @@ export function useExercise() {
     setError(null)
     try {
       const logs = await fetchExerciseLogs(today)
-      setExercises(logs.map(toStoreShape))
+      setExercises(logs.map(toExerciseRecordItem))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -62,7 +37,7 @@ export function useExercise() {
       setExerciseTypes(
         types.map((t) => ({
           ...t,
-          emoji: TYPE_EMOJIS[t.typeName] ?? '🏃',
+          emoji: getExerciseTypeEmoji(t.typeName),
         }))
       )
     } catch {
@@ -79,7 +54,7 @@ export function useExercise() {
 
   const addExerciseEntry = useCallback(async ({ typeId, durationMin, title, memo }) => {
     const saved = await createExerciseLog({ typeId, durationMin, title, memo })
-    addExercise(toStoreShape(saved))
+    addExercise(toExerciseRecordItem(saved))
     return saved
   }, [addExercise])
 

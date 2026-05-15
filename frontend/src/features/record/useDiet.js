@@ -1,21 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import useDietStore from '../../store/useDietStore.js'
 import { fetchDietLogs, createDietLog, deleteDietLog, toLocalDateTimeStr } from '../../api/recordApi.js'
-
-function toStoreShape(log) {
-  return {
-    id: String(log.logId),
-    logId: log.logId,
-    name: log.foodName || '(메뉴)',
-    calories: log.logKcal || 0,
-    carbs: log.logCarbs || 0,
-    protein: log.logProtein || 0,
-    fat: log.logFat || 0,
-    mealType: log.mealType,
-    time: new Date(log.ateAt),
-    imgUrl: log.imgUrl ?? null,
-  }
-}
+import { toDietRecordItem } from './recordMappers.js'
 
 export function useDiet() {
   const { meals, addMeal, removeMeal, resetMeals } = useDietStore()
@@ -31,7 +17,7 @@ export function useDiet() {
       resetMeals()
       const logs = await fetchDietLogs(today)
       if (signal?.aborted) return
-      logs.forEach((log) => addMeal(toStoreShape(log)))
+      logs.forEach((log) => addMeal(toDietRecordItem(log)))
     } catch (e) {
       if (!signal?.aborted) setError(e.message)
     } finally {
@@ -60,7 +46,7 @@ export function useDiet() {
         imgUrl,
         ateAt: ateAt ?? toLocalDateTimeStr(),
       })
-      addMeal(toStoreShape(saved))
+      addMeal(toDietRecordItem(saved))
       return saved
     },
     [addMeal],
