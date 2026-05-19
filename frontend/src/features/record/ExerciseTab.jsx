@@ -11,7 +11,7 @@ import BodyMetricSummary from './BodyMetricSummary.jsx'
 function StatCard({ label, value, unit }) {
   return (
     <div className="bg-surface-container-low p-5 rounded-xl flex-1">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 font-body">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
         {label}
       </p>
       <div className="flex items-baseline gap-1">

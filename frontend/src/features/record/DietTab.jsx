@@ -17,7 +17,7 @@ function MacroBar({ label, current, goal, unit }) {
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-end">
-        <span className="text-[11px] uppercase tracking-widest font-bold text-on-surface-variant font-body">
+        <span className="text-[11px] uppercase tracking-widest font-bold text-on-surface-variant">
           {label}
         </span>
         <span className="font-headline font-bold text-base text-on-surface">

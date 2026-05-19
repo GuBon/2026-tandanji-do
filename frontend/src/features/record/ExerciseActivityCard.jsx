@@ -13,7 +13,7 @@ export default function ExerciseActivityCard({ exercise, onRemove }) {
 
         {/* 내용 */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-sm text-on-surface font-body">{exercise.name}</h3>
+          <h3 className="font-bold text-sm text-on-surface">{exercise.name}</h3>
           <p className="text-xs text-on-surface-variant mt-0.5">
             {exercise.detail} · {durationStr}
           </p>

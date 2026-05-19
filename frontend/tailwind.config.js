@@ -9,7 +9,6 @@ export default {
       fontFamily: {
         sans:     ['Open Sans', 'sans-serif'],
         headline: ['Manrope', 'sans-serif'],
-        body:     ['Public Sans', 'sans-serif'],
       },
       colors: {
         'primary':                   '#1b6d24',
