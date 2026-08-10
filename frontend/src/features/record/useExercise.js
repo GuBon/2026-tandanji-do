@@ -9,7 +9,10 @@ import {
 import { getExerciseTypeEmoji, toExerciseRecordItem } from './recordMappers.js'
 
 export function useExercise() {
-  const { exercises, addExercise, setExercises, removeExercise } = useExerciseStore()
+  const exercises = useExerciseStore((s) => s.exercises)
+  const addExercise = useExerciseStore((s) => s.addExercise)
+  const setExercises = useExerciseStore((s) => s.setExercises)
+  const removeExercise = useExerciseStore((s) => s.removeExercise)
   const [exerciseTypes, setExerciseTypes] = useState([])
   const [loading, setLoading] = useState(false)
   const [typesLoading, setTypesLoading] = useState(true)

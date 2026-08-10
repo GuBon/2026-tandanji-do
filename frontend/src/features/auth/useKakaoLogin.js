@@ -5,7 +5,9 @@ const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_APP_KEY
 const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI
 
 export function useKakaoLogin() {
-  const { setGuest, clearAuth, setError } = useAuthStore()
+  const setGuest = useAuthStore((s) => s.setGuest)
+  const clearAuth = useAuthStore((s) => s.clearAuth)
+  const setError = useAuthStore((s) => s.setError)
 
   const login = useCallback(() => {
     if (!window.Kakao) {

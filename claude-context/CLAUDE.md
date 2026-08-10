@@ -72,25 +72,25 @@ cd backend
 
 ## 전역 규칙
 
-- `ddl-auto=none`이므로 스키마 변경은 SQL로 직접 반영하고 `sql/ddl/Script.sql`도 함께 갱신한다 — Hibernate가 스키마를 자동 생성/검증하지 않으므로 코드와 DB가 따로 놀면 런타임 매핑 오류가 난다.
+- `ddl-auto=none` — 스키마 변경은 반드시 직접 SQL 실행, `sql/ddl/Script.sql`도 함께 갱신
 - API 응답 래퍼: 백엔드는 기본적으로 `ApiResponse<T>` 사용 (`DELETE /auth/logout`은 204 No Content 예외)
-- 인증: JWT 구현 완료 — 보호 라우트는 `Authorization: Bearer <token>` 헤더를 받는다.
+- 인증: JWT 구현 완료 — 보호 라우트는 `Authorization: Bearer <token>` 헤더 필수
 - 공개 API: `GET /stores/**`, `GET /posts`, `GET /posts/{id}`, `GET /posts/{id}/comments`, `GET /reports`, `GET /images/**`, `POST /chatbot/recommend`, `POST /chatbot/analyze`
-- userId는 서비스 레이어에서 `SecurityUtil.getCurrentUserId()`로 추출한다 — 요청 파라미터/바디로 받으면 클라이언트가 타인 userId를 위조할 수 있으므로 JWT에서만 얻는다.
-- 모바일 퍼스트 — 모든 UI는 `sm(640px)` 이하 기준으로 먼저 설계한다.
+- userId: 서비스 레이어에서 `SecurityUtil.getCurrentUserId()` 로 추출 (요청 파라미터/바디 사용 금지)
+- 모바일 퍼스트 — 모든 UI는 `sm(640px)` 이하 기준 설계
 
 ### 백엔드 핵심 주의사항
 
-- **Jackson 3.x** (Spring Boot 4): `JsonNode`에서 문자열을 꺼낼 때는 `stringValue()`를 쓴다 — `asText()` / `textValue()`는 Jackson 3.x에서 deprecated.
-- **ChatbotService**: AI 서버 POST는 `HttpURLConnection`으로 보낸다 — RestClient·JDK HttpClient 모두 Spring Boot 4 + Jackson 3.x 환경에서 요청 바디가 누락되는 422 버그가 있다. (AuthService의 카카오 API 호출은 이 버그와 무관하므로 RestClient 허용)
+- **Jackson 3.x** (Spring Boot 4): `JsonNode` 문자열 추출 시 `asText()` / `textValue()` 사용 금지 → `stringValue()` 사용
+- **ChatbotService**: RestClient / JDK HttpClient 모두 422 바디 누락 버그 확인 → `HttpURLConnection` 직접 사용 (AuthService의 카카오 API 호출은 RestClient 허용)
 - **비로그인 허용 API**: `SecurityUtil.getCurrentUserIdOrNull()` — 로그인 시 개인화 데이터 추가, 비로그인 시 null
 
 ### 프론트엔드 핵심 주의사항
 
-- 인증 필요 JSON API는 `apiClient`로 호출한다 (JWT 헤더 자동 주입) — 직접 `fetch`하면 토큰이 빠져 401이 난다.
-- 인증이 필요한 액션(글쓰기·좋아요·댓글 등)은 `requireAuth(fn)` 패턴으로 래핑한다 — 비로그인 시 `AuthRequiredModal`로 유도하기 위함.
-- Zustand는 개별 selector로 구독한다: `useStore(s => s.field)` — `useStore()`로 전체 구독하면 무관한 필드 변경에도 리렌더링된다.
-- z-index는 `tailwind.config.js`에 등록된 계층(`z-map/z-marker/z-canvas/z-ui/z-modal`)만 사용한다 — `z-[임의값]`을 직접 쓰면 마커·캔버스·모달의 쌓임 순서가 깨진다.
+- 인증 필요 JSON API는 반드시 `apiClient` 사용 (JWT 헤더 자동 주입)
+- 인증이 필요한 액션(글쓰기·좋아요·댓글 등)은 `requireAuth(fn)` 패턴으로 래핑
+- Zustand는 개별 selector로 구독: `useStore(s => s.field)` — `useStore()` 전체 구독 금지
+- `z-[임의값]` 직접 사용 금지 — `tailwind.config.js`에 등록된 계층만 사용 (`z-map/z-marker/z-canvas/z-ui/z-modal`)
 
 ## 주요 컨텍스트
 

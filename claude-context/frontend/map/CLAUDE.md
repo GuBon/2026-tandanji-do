@@ -56,9 +56,7 @@ map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨
 - 훅 하나의 책임이 두 가지 이상이면 분리한다.
 - `MapPage.jsx` 로직이 50줄을 초과하면 즉시 커스텀 훅으로 추출한다.
 
-### 날씨 데이터 흐름
-
-이 단방향 흐름(geolocation → store → useWeather → 위젯)을 유지한다 — 중간 단계가 store를 우회해 직접 호출하면 latLon 변경이 날씨에 반영되지 않거나 중복 호출이 발생한다.
+### 날씨 데이터 흐름 (변경 금지)
 
 ```
 useGeolocation → setLatLon → useMapStore.latLon
@@ -169,7 +167,7 @@ AiNutritionModal(success|fail)     ← features/record/AiNutritionModal.jsx 공�
 
 #### grade null 처리 규칙
 
-- `grade: null`은 "메뉴 정보 미등록 매장"이라는 별개 상태다. `'GREEN'`으로 폴백하지 말 것 — 정보 없는 매장이 "우수 등급"으로 잘못 표시된다.
+- `grade: null` = 메뉴 정보 미등록 매장. `'GREEN'` 폴백 절대 금지.
 - MapMarker: grade 없으면 회색 스타일, 박스에 "정보 없음" 표시
 - StoreCard: grade 없으면 영양소 셀·태그 대신 "아직 메뉴 정보가 등록되지 않은 매장이에요" 안내
 - MapPage 필터: `gradeFilters.length > 0`이면 null grade 매장은 자동 제외
@@ -231,10 +229,10 @@ const locationPixel = useLocationPixel()  // MapPage.jsx
 
 ---
 
-## DO / DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
+## DO / DON'T
 
-- `MapView.jsx` 밖에서 `new Map(...)` 생성 금지 → `useMapStore(s => s.mapInstance)`로 참조만 한다 (인스턴스는 하나여야 함).
-- `window.__tdjmap__` 외부에서 직접 수정 금지 → `useMcpHost.js`에서만 관리한다.
-- 지도 레이어를 ID 없이 추가 금지 → `properties: { id }` 부여 후 추가 (없으면 중복 레이어 버그).
-- `fromLonLat` 인자 순서는 `[lon, lat]` 고정 — 반전하면 좌표가 엉뚱한 위치로 간다.
-- 영양성분 슬라이더 필터는 프론트 `visibleStores` useMemo에서만 처리한다 — 백엔드 쿼리로 보내지 않는다.
+- `MapView.jsx` 밖에서 `new Map(...)` 생성 금지.
+- `window.__tdjmap__` 외부에서 직접 수정 금지 (`useMcpHost.js`에서만 관리).
+- 지도 레이어를 ID 없이 추가 금지 (중복 레이어 버그 원인).
+- `fromLonLat` 인자 순서 반전 금지 — `[lon, lat]` 고정.
+- 영양성분 슬라이더 필터를 백엔드 쿼리로 보내지 말 것 — 프론트 필터로만 처리.

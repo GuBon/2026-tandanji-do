@@ -17,9 +17,9 @@ const FilterIcon = () => (
 const GRADE_COLOR = { GREEN: '#4ADE80', YELLOW: '#FACC15', RED: '#F87171' }
 
 const GRADES = [
-  { key: 'GREEN',  label: '균형식', color: '#4ADE80', bg: 'rgba(240,253,244,0.85)' },
-  { key: 'YELLOW', label: '일반식', color: '#FACC15', bg: 'rgba(254,252,232,0.85)' },
-  { key: 'RED',    label: '주의식', color: '#F87171', bg: 'rgba(255,241,242,0.85)' },
+  { key: 'GREEN',  label: '우수', color: '#4ADE80', bg: 'rgba(240,253,244,0.85)' },
+  { key: 'YELLOW', label: '보통', color: '#FACC15', bg: 'rgba(254,252,232,0.85)' },
+  { key: 'RED',    label: '주의', color: '#F87171', bg: 'rgba(255,241,242,0.85)' },
 ]
 
 export default function SearchOverlay({ value = '', onChange, onSearch, onFilterClick, results = [], onSelect, activeFilters, onGradeFilter }) {

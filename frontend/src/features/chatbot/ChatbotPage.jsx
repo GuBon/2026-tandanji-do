@@ -10,7 +10,7 @@ const GRADE_STYLE = {
   YELLOW: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   RED:    'bg-red-50 text-red-700 border-red-200',
 }
-const GRADE_LABEL = { GREEN: '균형식', YELLOW: '일반식', RED: '주의식' }
+const GRADE_LABEL = { GREEN: '우수', YELLOW: '보통', RED: '주의' }
 
 function MacroRow({ item }) {
   if (item.carbs == null && item.protein == null && item.fat == null) return null

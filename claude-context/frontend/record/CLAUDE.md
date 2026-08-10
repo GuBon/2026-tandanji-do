@@ -276,8 +276,8 @@ export const EXERCISE_TYPE_EMOJIS = {
 - DashboardPage에서 "전체" 기간은 user.createdAt 기준으로 계산
 - DietRecordPage AI 분석 성공 조건: menuId != null AND menuName != null 둘 다 확인
 
-❌ DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
-- useDietStore / useExerciseStore 직접 수정 금지 → useDiet / useExercise 훅을 경유한다 (API 동기화·로딩 상태가 훅에 묶여 있음)
-- ExerciseTab에서 useExercise 직접 호출 금지 → RecordPage에서 호출한 값을 props로 받는다 (이중 호출 방지)
-- CALORIE_GOAL / MACRO_GOALS 하드코딩 값을 Store로 빼지 말 것 → 사용자별 목표 기능이 생기기 전까지는 상수로 둔다 (지금 Store화하면 불필요한 추상화)
+❌ DON'T
+- useDietStore / useExerciseStore 직접 수정 금지 — 훅 경유
+- ExerciseTab에서 useExercise 직접 호출 금지 — RecordPage에서 받은 props 사용
+- CALORIE_GOAL / MACRO_GOALS 하드코딩 값을 사용자별 목표 기능 없이 Store로 빼지 말 것
 ```

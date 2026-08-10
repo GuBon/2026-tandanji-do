@@ -156,8 +156,8 @@ deleteComment(postId, commentId)      // DELETE /posts/{postId}/comments/{commen
 - 인증이 필요한 액션(글쓰기·좋아요·댓글 작성·삭제)은 requireAuth()로 반드시 감싼다
 - 댓글 삭제 버튼은 comment.mine === true 인 항목에만 표시
 
-❌ DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
-- PostResponse에서 authorId/nickname 파싱·표시 금지 → 백엔드에서 제거된 필드이므로 익명으로만 렌더링
-- 새 탭 추가 시 TABS 배열 값을 DB postType 컬럼 값과 정확히 일치시킨다 (불일치하면 해당 탭 조회가 빈 결과)
-- PostComments를 PostDetailPage 밖에서 단독 사용 시 postId prop을 반드시 전달한다 (없으면 댓글 로드 실패)
+❌ DON'T
+- PostResponse에서 authorId/nickname 필드를 파싱하거나 표시하지 말 것 — 백엔드에서 제거됨
+- 새 탭 추가 시 TABS 배열과 DB postType 컬럼 값 불일치 금지
+- PostComments를 PostDetailPage 밖에서 단독 사용 시 postId prop 누락 주의
 ```

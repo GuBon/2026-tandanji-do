@@ -161,9 +161,9 @@ function getMealType() {
 - RecommendCard는 항상 <button> 태그 — div로 바꾸지 말 것
 - 이미지는 반드시 canvas 리사이즈 후 전송 (원본 대용량 방지)
 
-❌ DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
-- useChatbot에서 navigate 직접 호출 금지 → 지도 이동은 ChatbotPage의 handleStoreClick이 담당 (훅은 라우팅 비의존 유지)
-- 이미지 Data URL을 messages 배열에 직접 저장하지 말 것 → imageDataUrl 필드로 분리 (대용량 문자열이 메시지 목록을 무겁게 함)
-- center 없을 때 추천 요청 금지 → "지도 화면에서 현재 위치를 먼저 설정해 주세요." 안내로 대체
-- 이미지 리사이즈 없이 원본 파일을 base64로 직접 전송 금지 → canvas로 max 1024px·JPEG 85% 축소 후 전송 (페이로드 폭증 방지)
+❌ DON'T
+- useChatbot에서 navigate 직접 호출 금지 — 지도 이동은 ChatbotPage의 handleStoreClick이 담당
+- 이미지 Data URL을 messages 배열에 직접 저장하지 말 것 (imageDataUrl 필드로 분리)
+- center 없을 때 추천 요청 금지 — 위치 미설정 안내 메시지로 대체
+- 이미지 리사이즈 없이 원본 파일을 base64로 직접 전송 금지
 ```

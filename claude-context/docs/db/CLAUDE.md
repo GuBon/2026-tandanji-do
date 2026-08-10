@@ -1,7 +1,7 @@
 # CLAUDE.md — docs/db/
 
 TDJMap PostgreSQL/PostGIS 스키마·DDL 관리.  
-**핵심 원칙**: `ddl-auto=none`이므로 스키마 변경은 SQL로 직접 반영하고 `sql/ddl/Script.sql`도 함께 갱신한다 — Hibernate가 스키마를 자동 반영하지 않으므로, 실제 DB·Script.sql·Entity 세 곳이 어긋나면 매핑/검증 오류가 난다.
+**절대 원칙**: `ddl-auto=none` — 스키마 변경은 SQL로 직접 반영하고 `sql/ddl/Script.sql`도 함께 갱신한다.
 
 ---
 
@@ -169,9 +169,9 @@ CREATE TABLE IF NOT EXISTS tandanji.{table_name} (
 - 실제 DB와 sql/ddl/Script.sql 동시 갱신
 
 ❌ DON'T
-- ddl-auto를 validate/update/create로 바꾸지 말 것 → none 유지
-- 운영 데이터 있는 컬럼에 NOT NULL을 DEFAULT 없이 추가하지 말 것 → DEFAULT를 함께 주거나 백필 후 제약 추가 (기존 행이 제약 위반으로 실패)
-- DROP/DELETE 전 FK 의존성과 시드 데이터 영향을 먼저 확인한다
+- ddl-auto를 validate/update/create로 바꾸지 말 것
+- 운영 데이터 있는 컬럼에 NOT NULL 추가 시 DEFAULT 없이 추가하지 말 것
+- DROP/DELETE 전 FK 의존성과 시드 데이터 영향 확인
 ```
 
 ---

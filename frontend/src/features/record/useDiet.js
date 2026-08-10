@@ -4,7 +4,10 @@ import { fetchDietLogs, createDietLog, deleteDietLog, toLocalDateTimeStr } from 
 import { toDietRecordItem } from './recordMappers.js'
 
 export function useDiet() {
-  const { meals, addMeal, removeMeal, resetMeals } = useDietStore()
+  const meals = useDietStore((s) => s.meals)
+  const addMeal = useDietStore((s) => s.addMeal)
+  const removeMeal = useDietStore((s) => s.removeMeal)
+  const resetMeals = useDietStore((s) => s.resetMeals)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 

@@ -26,6 +26,8 @@ userId: 서버에서 JWT로 추출 — Body·QueryParam으로 전달 금지
 }
 ```
 
+예외: `DELETE /auth/logout`은 성공 시 `204 No Content`를 반환하며 `ApiResponse` 본문이 없다.
+
 에러 시:
 ```json
 {
@@ -69,14 +71,22 @@ Body:
 { "refreshToken": "eyJ..." }
 
 Response 200:
-{ "accessToken": "eyJ..." }
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "user": {
+    "userId": 1,
+    "nickname": "홍길동",
+    "role": "USER"
+  }
+}
 ```
 
 #### `DELETE /auth/logout` — 로그아웃
 
 ```
 Header: Authorization: Bearer <jwt>
-Response 200: { status: 200, data: null }
+Response 204: No Content
 동작: DB에서 refresh token 무효화
 ```
 
@@ -90,18 +100,19 @@ Response 200: { status: 200, data: null }
 Query Params:
   sw_lat, sw_lng, ne_lat, ne_lng   (Double, 필수) — bbox 남서/북동 좌표
   category                          (String, 선택) — '샐러드'|'포케'|'한식뷔페'
-  min_protein                       (Integer, 선택)
-  max_carbs, max_fat, max_sugar     (Integer, 선택)
+  q                                 (String, 선택) — 매장/주소/브랜드/메뉴명 키워드 검색
 
 Response 200:
 [
   {
     "storeId": 1,
     "storeName": "샐러디아 인천점",
+    "address": "인천시 ...",
     "latitude": 37.456,
     "longitude": 126.705,
     "brandId": 3,
     "category": "샐러드",
+    "brandLogoUrl": "https://...",
     "rating": 4.3,
     "markerMacro": {
       "carbs": 45,
@@ -153,7 +164,6 @@ Response 200:
     "carbs": 58,
     "protein": 24,
     "fat": 12,
-    "sugar": 8,
     "menuUrl": "https://...",
     "nutritionGrade": "GREEN",
     "nutritionTags": ["고단백"]
@@ -275,6 +285,55 @@ Response 200:
 }
 
 동작: post_likes에 (postId, userId) 없으면 INSERT, 있으면 DELETE
+```
+
+#### `GET /posts/{postId}/comments` — 댓글 목록 조회
+
+```
+인증 불필요 (JWT 제공 시 mine 반영)
+
+Response 200:
+[
+  {
+    "commentId": 1,
+    "content": "좋은 정보 감사합니다!",
+    "createdAt": "2026-05-18T10:30:00",
+    "mine": false
+  }
+]
+
+정렬: createdAt 오름차순
+에러: 404 — POST_NOT_FOUND
+```
+
+#### `POST /posts/{postId}/comments` — 댓글 작성
+
+```
+Header: Authorization: Bearer <jwt>
+Body:
+{
+  "content": "좋은 정보 감사합니다!"  // 필수, max 500자
+}
+
+Response 201:
+{
+  "commentId": 1,
+  "content": "좋은 정보 감사합니다!",
+  "createdAt": "2026-05-18T10:30:00",
+  "mine": true
+}
+
+에러: 404 — POST_NOT_FOUND
+```
+
+#### `DELETE /posts/{postId}/comments/{commentId}` — 댓글 삭제
+
+```
+Header: Authorization: Bearer <jwt>
+
+Response 200: { status: 200, data: null }
+에러: 403 — COMMENT_FORBIDDEN (작성자 본인이 아닌 경우)
+     404 — COMMENT_NOT_FOUND 또는 POST_NOT_FOUND
 ```
 
 ---
@@ -401,6 +460,28 @@ Response 200: { status: 200, data: null }
 
 ---
 
+### 체중 기록 (WeightLog)
+
+#### `GET /weight-logs` — 내 체중 변경 이력 조회
+
+```
+Header: Authorization: Bearer <jwt>
+
+Response 200:
+[
+  {
+    "logId": 1,
+    "weightKg": 68.0,
+    "recordedAt": "2026-05-18T10:30:00"
+  }
+]
+
+정렬: recordedAt 오름차순
+동작: PUT /users/me에서 weight가 변경될 때 서버가 체중 로그를 생성한다.
+```
+
+---
+
 ### 신고 (Report)
 
 #### `POST /reports` — 영양정보 오류 신고
@@ -411,6 +492,9 @@ Body:
 {
   "storeId": 1,    // optional — 매장 ID (DB 매장에 자동 연결)
   "storeName": "이삭토스트 인하대점",
+  "storeAddress": "인천시 미추홀구 ...",  // optional
+  "storeLat": 37.451,                    // optional
+  "storeLon": 126.657,                   // optional
   "menuName": "야채 토스트",
   "carbs": 60,     // optional
   "protein": 10,   // optional
@@ -422,6 +506,7 @@ Response 200: { status: 200, data: null }
 
 동작:
   - storeId 있으면 reports.store_id FK 설정
+  - storeId 없고 storeLat/storeLon 있으면 근처 매장을 찾아 reports.store_id 자동 연결 시도
   - menuName과 storeId로 menus 테이블에서 매칭되는 menu_id 자동 연결
   - 초기 status: PENDING
 ```
@@ -440,6 +525,8 @@ Response 200:
     "storeId": 1,
     "storeName": "이삭토스트 인하대점",
     "storeAddress": "인천시 미추홀구 ...",
+    "storeLat": 37.451,    // null 가능
+    "storeLon": 126.657,   // null 가능
     "menuId": 5,           // null 가능 — 메뉴 미매칭 시
     "menuName": "야채 토스트",
     "carbs": 60,
@@ -492,6 +579,9 @@ Response 200:
     "userId": 5,
     "userNickname": "홍길동",
     "storeName": "이삭토스트 인하대점",
+    "storeAddress": "인천시 미추홀구 ...",  // null 가능
+    "storeLat": 37.451,                    // null 가능
+    "storeLon": 126.657,                   // null 가능
     "menuName": "야채 토스트",
     "carbs": 60,
     "protein": 10,
@@ -533,6 +623,7 @@ Response 200:
   "height": 175,        // null 가능 (미설정 시 응답 필드 없음)
   "weight": 70,         // null 가능 (미설정 시 응답 필드 없음)
   "gender": "M",        // null 가능 (미설정 시 응답 필드 없음)
+  "age": 30,            // null 가능 (미설정 시 응답 필드 없음)
   "createdAt": "2026-05-01T10:00:00"
 }
 
@@ -551,7 +642,8 @@ Body:
   "nickname": "새닉네임",   // optional (max 50자)
   "height": 175,            // optional
   "weight": 68,             // optional
-  "gender": "M"             // optional — M | F (max 1자)
+  "gender": "M",            // optional — M | F (max 1자)
+  "age": 30                 // optional — 1~120
 }
 
 Response 200: UserResponse (위와 동일 구조, 변경된 값 반영)
@@ -576,8 +668,6 @@ Response 200: Page<PostResponse>
   "content": [
     {
       "postId": 1,
-      "authorId": 5,
-      "nickname": "건강한하루",
       "postType": "식단 공유",
       "title": "오늘 점심 샐러드",
       "content": "샐러디아 그린파워볼 먹었어요",
@@ -683,6 +773,8 @@ Response 200:
       "storeId": 94,
       "storeName": "샐러디아 인천점",
       "address": "인천시 ...",
+      "lat": 37.4563,
+      "lon": 126.7041,
       "menuId": 212,
       "menuName": "그린 파워볼",
       "kcal": 480,
@@ -756,3 +848,5 @@ Response 200:
 | 2026-05-08 | POST /chatbot/recommend 구현 완료 (AI API 연계, 서버 간 HTTP) | 백엔드 에이전트 |
 | 2026-05-11 | POST /chatbot/analyze 누락 추가 → ✅, POST /diet-logs imgUrl? 필드 누락 추가 | API 계약 에이전트 |
 | 2026-05-13 | 투표 기능 추가: GET /reports, POST /reports/{id}/vote, GET /stores/{id}/menu-reports → ✅, POST /reports body에 storeId 추가, GET /stores/search 응답에 reportCount/latestReportMacro 추가 | API 계약 에이전트 |
+| 2026-05-18 | 백엔드 컨트롤러 기준 전체 API 반영: 댓글 3개, GET /weight-logs 추가, /stores/search q 파라미터, /users/me age, POST /reports 위치 필드, DELETE /auth/logout 204 응답 정정 | API 계약 에이전트 |
+| 2026-05-19 | DTO 기준 응답 필드 정정: /auth/refresh TokenResponse 전체, /stores/search address·brandLogoUrl, /stores/{id}/menus sugar 제거, 챗봇 추천 lat/lon 추가 | API 계약 에이전트 |

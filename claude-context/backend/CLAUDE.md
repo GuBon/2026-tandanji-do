@@ -103,7 +103,7 @@ API 스펙(요청/응답 형식, 공개 여부, 전체 목록)은 `docs/api/cont
 
 ## 2. 행동 지침
 
-### 레이어 패턴
+### 레이어 패턴 (반드시 준수)
 
 ```
 Controller → Service → Repository
@@ -254,12 +254,12 @@ AND   (nutrition_info->>'tags')::jsonb ? '고단백'
 - 리뷰/게시글 등 like 수 배치 조회로 N+1 방지 (countByXxxIds 패턴)
 - SecurityConfig 공개 API 등록 시 HttpMethod 명시로 허용 범위를 제한한다
 
-❌ DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
-- ddl-auto를 validate/update/create로 바꾸지 말 것 → none 유지, 스키마는 직접 SQL 실행
-- Entity에 비즈니스 로직 작성 금지 → 로직은 Service에 둔다 (Entity는 데이터 + 연관관계만)
-- 새 도메인을 루트 패키지에 직접 생성 금지 → feature 패키지(`{domain}/controller·service·dto`) 하위에 둔다
-- userId를 요청 파라미터/바디로 수신 금지 → SecurityUtil.getCurrentUserId()로 JWT에서 추출
-- Jackson 3.x에서 asText()/textValue() 사용 금지 → stringValue() 사용
+❌ DON'T
+- ddl-auto를 validate/update/create로 변경 금지 — 스키마는 직접 SQL 실행
+- Entity에 비즈니스 로직 작성 금지
+- 새 도메인을 루트 패키지에 직접 생성 금지 — 반드시 feature 패키지 하위
+- userId를 요청 파라미터/바디로 수신 금지 — JWT에서 추출
+- Jackson 3.x에서 asText()/textValue() 사용 금지 — stringValue() 사용
 - ChatbotService에서 RestClient / JDK HttpClient 사용 금지 (422 바디 누락 버그)
   ※ AuthService에서 카카오 API 호출 시 RestClient.create() 사용은 허용됨
     (이 버그는 AI 서버 POST 바디 전송에만 해당)
@@ -337,11 +337,13 @@ backend/uploads/            ← 런타임 저장소 (.gitignore)
 
 ### 주요 테이블 상세
 
-**menus**: `nutrition_info` JSONB (DB `analyze_nutrition()` 함수가 자동 생성, 앱에서 쓰기 불가)
+**menus**: `nutrition_info` JSONB (자동 생성)
 ```json
 { "grade": "GREEN|YELLOW|RED", "tags": ["고단백", "저탄수"] }
 ```
-- grade/tag 산출 임계값은 `docs/db/CLAUDE.md`를 진실의 원천으로 둔다 (DB 함수와 함께 관리되므로).
+- GREEN: 탄수 35–55%, 단백 ≥30%, 지방 <25%
+- RED: 탄수 ≥65% OR 지방 ≥35% OR 단백 <10%
+- 태그: 고탄수(≥60%) 저탄수(<20%) 고단백(≥40%) 고지방(≥35%)
 
 **menus CHECK**: `brand_id IS NOT NULL OR is_standard = true`
 

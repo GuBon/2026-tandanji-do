@@ -8,7 +8,9 @@ import useWeather from './useWeather'
 
 export default function MapView() {
   const mapRef = useRef(null)
-  const { center, zoom, setMapInstance } = useMapStore()
+  const center = useMapStore((s) => s.center)
+  const zoom = useMapStore((s) => s.zoom)
+  const setMapInstance = useMapStore((s) => s.setMapInstance)
 
   useMcpHost()
   useWeather()

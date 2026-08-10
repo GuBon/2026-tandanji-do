@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 const useAuthStore = create(persist(
   (set) => ({
-    user: null,            // { userId, nickname, role, height?, weight?, gender?, createdAt? }
+    user: null,            // { userId, nickname, role, height?, weight?, gender?, age?, createdAt? }
     jwtAccessToken: null,  // 메모리만 (persist 제외 — 단기 토큰)
     jwtRefreshToken: null, // localStorage 영속
     isGuest: false,

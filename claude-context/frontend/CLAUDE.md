@@ -292,12 +292,12 @@ sheet-confirm   바텀시트 확인
 - 인증 필요 API는 반드시 apiClient() 사용 (JWT 헤더 자동 주입)
 - 인증이 필요한 액션은 반드시 requireAuth()로 감싼다
 
-❌ DON'T (각 항목은 "피할 것 → 대신 할 것" 형태)
-- API 키를 컴포넌트 코드에 하드코딩 금지 → import.meta.env(.env)에서만 읽는다
-- px 단위 하드코딩 금지 → Tailwind 수치 클래스를 쓴다 (모바일 화면비 일관성)
-- z-[임의값] 직접 사용 금지 → tailwind.config.js에 계층 등록 후 z-map/z-marker/… 사용 (쌓임 순서 보호)
-- 데스크톱 전용 라이브러리 추가 금지 → 모바일 번들 크기·성능을 우선해 경량 대안 선택
-- 인증 필요 JSON API에 직접 fetch 사용 금지 → apiClient 사용 (JWT 헤더 자동 주입)
+❌ DON'T
+- API 키를 컴포넌트 코드에 하드코딩 금지 (.env 에서만)
+- px 단위 하드코딩 금지 (Tailwind 수치 활용)
+- z-[임의값] 직접 사용 금지 (tailwind.config.js 등록 후 사용)
+- 데스크톱 전용 라이브러리 추가 금지 (모바일 성능 우선)
+- 인증 필요 JSON API에 직접 fetch 사용 금지 — apiClient 사용
 ```
 
 ---
@@ -352,12 +352,38 @@ npm run preview  # 빌드 결과 미리보기
 //   protein≥25 → 고단백, carbs≤40 → 저탄수, carbs≥80 → 고탄수, fat≤10 → 저지방, fat≥25 → 고지방
 ```
 
-### feature별 API 함수 목록
+### 기록 API 함수 (recordApi.js)
 
-도메인 API 함수의 시그니처·동작은 각 feature CLAUDE.md를 진실의 원천으로 둔다 (중복 방지).
+```js
+fetchDietLogs(date: Date)           // GET /diet-logs?date=yyyy-MM-dd
+createDietLog(payload)             // POST /diet-logs
+deleteDietLog(logId)               // DELETE /diet-logs/{logId}
 
-- 기록(recordApi.js): `frontend/src/features/record/CLAUDE.md` — 식단/운동/체중 로그 CRUD
-- 커뮤니티(postApi.js): `frontend/src/features/community/CLAUDE.md` — 게시글/좋아요/댓글 CRUD
+fetchExerciseTypes()               // GET /exercise-types
+fetchExerciseLogs(date: Date)       // GET /exercise-logs?date=yyyy-MM-dd
+createExerciseLog(payload)         // POST /exercise-logs — caloriesBurned 전송 안 함 (서버 계산)
+deleteExerciseLog(exerciseId)      // DELETE /exercise-logs/{exerciseId}
+
+fetchWeightLogs()                  // GET /weight-logs — 전체 체중 이력 (asc)
+toLocalDateTimeStr()               // 현재 시각을 로컬 datetime 문자열로 반환 (식단기록 ateAt 필드)
+```
+
+### 커뮤니티 API 함수 (postApi.js)
+
+```js
+fetchPosts({ postType, page, size })    // GET /posts
+fetchPost(postId)                       // GET /posts/{postId}
+createPost(payload)                     // POST /posts
+deletePost(postId)                      // DELETE /posts/{postId}
+fetchPostLikeStatus(postId)             // GET /posts/{postId}/likes
+togglePostLike(postId)                  // POST /posts/{postId}/likes
+
+fetchComments(postId)                   // GET /posts/{postId}/comments → CommentItem[]
+createComment(postId, content)          // POST /posts/{postId}/comments → CommentItem
+deleteComment(postId, commentId)        // DELETE /posts/{postId}/comments/{commentId}
+
+// CommentItem: { commentId, content, createdAt, mine }
+```
 
 ---
 
