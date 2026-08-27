@@ -21,11 +21,11 @@ async function fetchPublicIp() {
   return ip
 }
 
+// publicIp가 없으면 X-Client-Public-IP 헤더를 생략한다 — 서버가 요청 IP로 대체 판별
 function makeHeaders(publicIp) {
-  return {
-    Accept: 'application/json',
-    'X-Client-Public-IP': publicIp,
-  }
+  const headers = { Accept: 'application/json' }
+  if (publicIp) headers['X-Client-Public-IP'] = publicIp
+  return headers
 }
 
 async function fetchRestLocation(publicIp) {
@@ -71,26 +71,22 @@ export function useGeolocation() {
       console.warn('[useGeolocation] 공인 IP 조회 실패')
     }
 
-    // 1순위: REST API
-    if (publicIp) {
-      try {
-        const { lng, lat } = await fetchRestLocation(publicIp)
-        applyLocation(lng, lat)
-        return
-      } catch (e) {
-        console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
-      }
+    // 1순위: 외부 위치 REST API — 공인 IP 조회 실패와 무관하게 항상 먼저 시도
+    try {
+      const { lng, lat } = await fetchRestLocation(publicIp)
+      applyLocation(lng, lat)
+      return
+    } catch (e) {
+      console.warn('[useGeolocation] REST 위치 조회 실패:', e.message)
     }
 
-    // 2순위: GPS fallback
+    // 2순위: 브라우저 GPS fallback — REST 실패 시에만
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         const { longitude: lng, latitude: lat, accuracy } = coords
         applyLocation(lng, lat)
-        if (publicIp) {
-          try { await postGpsLocation(publicIp, lng, lat, accuracy) } catch { /* noop */ }
-        }
+        try { await postGpsLocation(publicIp, lng, lat, accuracy) } catch { /* noop */ }
       },
       (err) => {
         console.warn('[useGeolocation] GPS 실패:', err.message)

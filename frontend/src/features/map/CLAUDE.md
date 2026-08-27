@@ -42,7 +42,7 @@ map 폴더는 OpenLayers 기반 GIS 지도, VWorld WMTS 타일, 기상청 날씨
 | `useStoreDetail` | 매장 상세 + 메뉴 + 리뷰 + 메뉴제보 조회, 거리 정보 병합, 리뷰 작성/좋아요, 메뉴제보 투표(toggleMenuReportVote) |
 | `useMapMarkers` | 지도 좌표 → 픽셀좌표 변환 (postrender 이벤트 구독, storesRef 패턴) |
 | `useLocationPixel` | 내 위치(latLon) → 지도 픽셀 좌표 변환 (postrender 구독) — 내 위치 파란 점 마커 |
-| `useGeolocation` | 브라우저 위치 획득 + 지도 이동 + 권한 처리 |
+| `useGeolocation` | 현재 위치 획득 + 지도 이동. **1순위 외부 위치 REST API(mapprime) → 2순위 브라우저 GPS** 순서 고정 — 공인 IP 조회 실패와 무관하게 REST를 항상 먼저 시도한다 |
 | `useWeather` | 기상청 API 호출, store에 weather/temperature/forecast 저장 |
 | `useRoute` | TMap API 호출 — 도보/자전거/차량/대중교통 경로, 거리/시간/칼로리 계산 |
 | `useRouteLayer` | 경로 GeoJSON → OpenLayers VectorLayer 추가/제거, 지도 뷰 fit |
